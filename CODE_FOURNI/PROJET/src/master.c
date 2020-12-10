@@ -137,7 +137,7 @@ void loop(master* mas, int syncsem)
         
             // construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
             if(N > mas->highest) {
-                for(int i = N-mas->highest; i=N-1; i++) {
+                for(int i = N-mas->highest; i<N; i++) {
                     ret = write(mas->mas_w[1], &i, sizeof(int));
                     assert(ret != -1);
                     printf("%d envoyé avec succès\n", i);

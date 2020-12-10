@@ -17,7 +17,7 @@
 // bref n'hésitez à mettre nombre de fonctions avec des noms explicites
 // pour masquer l'implémentation
 
-#define MASTER_CLIENT "master_client.pipe"
-#define CLIENT_MASTER "client_master.pipe"
+#define MASTER_CLIENT "PIPE_master_client"
+#define CLIENT_MASTER "PIPE_client_master"
 
 #endif

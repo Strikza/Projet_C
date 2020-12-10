@@ -82,14 +82,68 @@ static int parseArgs(int argc, char * argv[], int *number)
  * Fonction annexes
  ************************************************************************/
 
-void ouvertureTubeNommes(int * fd_write, int * fd_read){
+void ouvertureSemaphores(key_t key_crit, key_t key_sync, int * semid_crit, int * semid_sync){
 
-    *fd_read = open(MASTER_CLIENT, O_RDONLY);
-    assert(fd_read != -1);
+    *semid_crit = semget(key_crit, 0, 0);
+    assert(semid_crit != -1);
 
-    *fd_write = open(CLIENT_MASTER, O_WRONLY);
-    assert(fd_write != -1);
+    *semid_sync = semget(key_sync, 0, 0);
+    assert(semid_sync != -1);
 
+}
+
+void ouvertureTubeNommes(int * fd_client_master, int * fd_master_client){
+
+    *fd_master_client = open(MASTER_CLIENT, O_RDONLY);
+    assert(fd_master_client != -1);
+
+    *fd_client_master = open(CLIENT_MASTER, O_WRONLY);
+    assert(fd_client_master != -1);
+
+}
+
+void envoieDonneesMaster(int fd, int order, int n){
+    
+    int ret;
+
+    ret = write(fd, &order, sizeof(int));
+    assert(ret != -1);
+
+    if(order == ORDER_COMPUTE_PRIME){
+        ret = write(fd, &n, sizeof(int));
+        assert(ret != -1);
+    }
+}
+
+void lectureDonneeRenvoie(int fd, bool * answer){
+
+    int ret;
+
+    ret = read(fd, answer, sizeof(bool));
+    assert(ret != -1);
+}
+
+void liberationRessource(int fd_master_client, int fd_client_master){
+    
+    int ret;
+
+    ret = close(fd_master_client);
+    assert(ret != -1);
+
+    ret = close(fd_client_master);
+    assert(ret != -1);
+
+}
+
+void déblocageMaster(int semid_sync){
+
+    int ret;
+
+    ret = semop(semid_sync, &take, 1);
+    assert(ret != -1);
+
+    ret = semop(semid_sync, &sell, 1);
+    assert(ret != -1);
 }
 
 /************************************************************************
@@ -106,14 +160,6 @@ int main(int argc, char * argv[])
     int fd_client_master;
     int ret;
     bool answer;
-
-
-    // Ouverture des sémaphores
-    semid_crit = semget(key_crit, 0, 0);
-    assert(semid_crit != -1);
-
-    semid_sync = semget(key_sync, 0, 0);
-    assert(semid_sync != -1);
 
 
     int number = 0;
@@ -148,6 +194,10 @@ int main(int argc, char * argv[])
     // N'hésitez pas à faire des fonctions annexes ; si la fonction main
     // ne dépassait pas une trentaine de lignes, ce serait bien.
 
+    
+    // Ouverture des sémaphores
+    ouvertureSemaphores(key_crit, key_sync, &semid_crit, &semid_sync);
+
     if(order == ORDER_COMPUTE_PRIME_LOCAL){
 
     }
@@ -161,23 +211,16 @@ int main(int argc, char * argv[])
         ouvertureTubeNommes(&fd_client_master, &fd_master_client);
 
         // Envoie des données au master
-        ret = write(fd_client_master, &order, sizeof(int));
-        assert(ret != -1);
-
-        if(order == ORDER_COMPUTE_PRIME){
-            ret = write(fd_client_master, &argv[2], sizeof(int));
-            assert(ret != -1);
-        }
+        envoieDonneesMaster(fd_client_master, order, number);
         
         // Lit la réponse du master sur le 2e tube (se bloque en attendant la réponse)
-        ret = read(fd_master_client, &answer, sizeof(bool));
-        assert(ret != -1);
+        lectureDonneeRenvoie(fd_master_client, &answer);
 
         if(answer == true){
-            printf("Mon corp est prêt, le nombre %d est un nombre premier !\n", argv[2]);
+            printf("Mon corp est prêt, le nombre '%d' est un nombre premier !\n", number);
         }
         else{
-            printf("Mon corp n'est pas prêt, le nombre %d n'est pas un nombre premier !\n", argv[2]);
+            printf("Mon corp n'est pas prêt, le nombre '%d' n'est pas un nombre premier !\n", number);
         }
 
         // Libération de la section critique
@@ -185,19 +228,10 @@ int main(int argc, char * argv[])
         assert(ret != -1);
 
         // Fermeture des tubes
-        ret = close(fd_master_client);
-        assert(ret != -1);
-
-        ret = close(fd_client_master);
-        assert(ret != -1);
+        liberationRessource(fd_master_client, fd_client_master);
 
         // Déblocage du master
-        ret = semop(semid_sync, &take, 1);
-        assert(ret != -1);
-
-        ret = semop(semid_sync, &sell, 1);
-        assert(ret != -1);
-
+        déblocageMaster(semid_sync);
     }
     
     return EXIT_SUCCESS;

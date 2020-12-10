@@ -88,7 +88,7 @@ int main(int argc, char * argv[])
     keySync = ftok(SEMKEY_SYNC, PROJ_ID);
     assert(keySync != 1);
 
-    // - création des tableaux de sémaphores
+    // - création des sémaphores
     int CriticID, SyncID;
     CriticID = semget(keyCritic, 1, IPC_CREAT | IPC_EXCL | 0641);
     assert(CriticID != 1);
@@ -99,7 +99,7 @@ int main(int argc, char * argv[])
     int ret;
     ret = semctl(CriticID, 0, SETVAL, 0);
     assert(ret != 1);
-    ret = semctl(SyncID, 0, SETVAL, 0);
+    ret = semctl(SyncID, 0, SETVAL, 1);
     assert(ret != 1);
 
 
@@ -124,6 +124,10 @@ int main(int argc, char * argv[])
 
     // boucle infinie
     loop(/* paramètres */);
+
+    // situation de synchronisation
+
+    ret = semop(SyncID, &wait, 1);
 
     // DESTRUCTION
 

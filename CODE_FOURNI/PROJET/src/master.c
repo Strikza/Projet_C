@@ -221,16 +221,9 @@ int main(int argc, char * argv[])
     assert(keySync != -1);
 
     // - création des sémaphores
-<<<<<<< HEAD
     int CriticID = semget(keyCritic, 1, 0641 | IPC_CREAT);
     assert(CriticID != -1);
     int SyncID = semget(keySync, 1, 0641 | IPC_CREAT);
-=======
-    int CriticID, SyncID;
-    CriticID = semget(keyCritic, 1, IPC_CREAT | IPC_EXCL | 0641);
-    assert(CriticID != -1);
-    SyncID = semget(keySync, 1, IPC_CREAT | IPC_EXCL | 0641);
->>>>>>> 6011959f6a12e3de485c19b6494ac39973e226d1
     assert(SyncID != -1);
 
     // - initialisation des sémaphores

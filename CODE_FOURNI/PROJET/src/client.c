@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <assert.h>
 
 #include "myassert.h"
 
@@ -85,20 +84,20 @@ static int parseArgs(int argc, char * argv[], int *number)
 void ouvertureSemaphores(key_t key_crit, key_t key_sync, int * semid_crit, int * semid_sync){
 
     *semid_crit = semget(key_crit, 0, 0);
-    assert(semid_crit != -1);
+    assert(*semid_crit != -1);
 
     *semid_sync = semget(key_sync, 0, 0);
-    assert(semid_sync != -1);
+    assert(*semid_sync != -1);
 
 }
 
 void ouvertureTubeNommes(int * fd_client_master, int * fd_master_client){
 
     *fd_master_client = open(MASTER_CLIENT, O_RDONLY);
-    assert(fd_master_client != -1);
+    assert(*fd_master_client != -1);
 
     *fd_client_master = open(CLIENT_MASTER, O_WRONLY);
-    assert(fd_client_master != -1);
+    assert(*fd_client_master != -1);
 
 }
 
@@ -110,7 +109,7 @@ void envoieDonneesMaster(int fd, int order, int number){
         printf("Le client n°%d envoie l'ordre %d avec comme nombre '%d'\n", getpid(), order, number);
     }
     else{
-        printf("Le client n°%d envoie l'ordre %d\n", order);
+        printf("Le client n°%d envoie l'ordre %d\n", getpid(), order);
     }
 
     ret = write(fd, &order, sizeof(int));
@@ -149,7 +148,7 @@ void displayAnswer(int order, int answer, int number){
 
 }
 
-void déblocageMaster(int semid_sync){
+void deblocageMaster(int semid_sync){
 
     int ret;
 
@@ -239,7 +238,7 @@ int main(int argc, char * argv[])
         liberationTubesNommes(fd_master_client, fd_client_master);
 
         // Déblocage du master
-        déblocageMaster(semid_sync);
+        deblocageMaster(semid_sync);
     }
     
     return EXIT_SUCCESS;

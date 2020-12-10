@@ -49,21 +49,32 @@ static void usage(const char *exeName, const char *message)
 void ouvertureTubeNommes(int *mas_cli, int* cli_mas) {
 
     *mas_cli = open(MASTER_CLIENT, O_WRONLY);
-    assert(mas_cli != -1);
+    assert(*mas_cli != -1);
 
     *cli_mas = open(CLIENT_MASTER, O_RDONLY);
-    assert(cli_mas != -1);
+    assert(*cli_mas != -1);
 }
 
 void fermetureTubeNommes(int *mas_cli, int* cli_mas) {
 
     *mas_cli = close(*mas_cli);
-    assert(mas_cli != -1);
+    assert(*mas_cli != -1);
 
     *cli_mas = close(*cli_mas);
-    assert(cli_mas != -1);
+    assert(*cli_mas != -1);
 }
 
+void writeTubeMaster(int fd, int* answer) {// faire une sous fonction pour les write
+    int ret;
+    ret = write(fd, answer, sizeof(int));
+    assert(ret != -1);
+}
+
+void readTubeMaster(int fd, int* answer) { // faire une sous fonction pour les write
+    int ret;
+    ret = read(fd, answer, sizeof(int));
+    assert(ret != -1);
+}
 
 /************************************************************************
  * boucle principale de communication avec le client
@@ -99,7 +110,7 @@ void loop(master* mas, int syncsem)
     // voyez-vous pourquoi ?
 
     // ouverture des tubes
-    ouvertureTubeNommes(mas->mas_cli, mas->cli_mas);
+    ouvertureTubeNommes(&mas->mas_cli, &mas->cli_mas);
 
     // attente ordre d'un client
     int order;
@@ -107,56 +118,50 @@ void loop(master* mas, int syncsem)
     assert(ret != -1);
 
     while(!endwhile) {
+
         //si ORDER_STOP
         if(order == ORDER_STOP) {
             // envoyer ordre de fin au premier worker
-            ret = write(mas->mas_w[1], &order, sizeof(int));
-            assert(ret != -1);
+            writeTubeMaster(mas->mas_w[1], &order);
             printf("J'ai bien envoyé l'ordre %d (stop normalement) au workers\n", order);
 
             // et attendre sa fin
             int end;
-            ret = read(mas->w_mas[0], &end, sizeof(int));
-            assert(ret != -1);
+            readTubeMaster(mas->w_mas[0], &end);
             printf("J'ai bien reçu la fin des workers : %d\n", end);
 
             // envoyer un accusé de réception au client
-            ret = write(mas->mas_cli, &end, sizeof(int));
-            assert(ret != -1);
+            writeTubeMaster(mas->mas_cli, &end);
             printf("J'ai bien envoyé l'accusé de réception au client : %d", end);
 
             endwhile = 1;
         }
+        
         // si ORDER_COMPUTE_PRIME
         if(order == ORDER_COMPUTE_PRIME) {
             //récupérer le nombre N à tester provenant du client
             int N;
-            ret = read(mas->cli_mas, &N, sizeof(int));
-            assert(ret != -1);
+            readTubeMaster(mas->cli_mas, &N);
             printf("J'ai bien reçu le nombre N : %d", N);
         
             // construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
             if(N > mas->highest) {
                 for(int i = N-mas->highest; i<N; i++) {
-                    ret = write(mas->mas_w[1], &i, sizeof(int));
-                    assert(ret != -1);
+                    writeTubeMaster(mas->mas_w[1], &i);
                     printf("%d envoyé avec succès\n", i);
 
                     int M;    
-                    ret = read(mas->w_mas[0], &M, sizeof(int));
-                    assert(ret != -1);
+                    readTubeMaster(mas->w_mas[0], &M);
                     // on ignore M
                 }
             }
             // envoyer N dans le pipeline
-            ret = write(mas->mas_w[1], &N, sizeof(int));
-            assert(ret != -1);
+            writeTubeMaster(mas->mas_w[1], &N);
             printf("%d envoyé avec succès\n", N);
             
             // récupérer la réponse
             int M;    
-            ret = read(mas->w_mas[0], &M, sizeof(int));
-            assert(ret != -1);
+            readTubeMaster(mas->w_mas[0], &M);
 
             if(M == 1) { //Si N est bien premier
                 if(M > mas->highest) {
@@ -166,29 +171,27 @@ void loop(master* mas, int syncsem)
             }
 
             // la transmettre au client
-            ret = write(mas->mas_cli, &M, sizeof(int));
-            assert(ret != -1);
+            writeTubeMaster(mas->mas_cli, &M);
             printf("J'ai bien envoyé la réponse avec succès : %d\n", N);
         }
+        
         // si ORDER_HOW_MANY_PRIME
         if(order == ORDER_HOW_MANY_PRIME) {
             // transmettre la réponse au client
-            ret = write(mas->mas_cli, &(mas->howmanyprimals), sizeof(int));
-            assert(ret != -1);
+            writeTubeMaster(mas->mas_cli, &(mas->howmanyprimals));
             printf("J'ai bein envoyé le howmany au client avec succès : %d\n", mas->howmanyprimals);
         }
 
         // - si ORDER_HIGHEST_PRIME
         if(order == ORDER_HIGHEST_PRIME) {
             // transmettre la réponse au client
-            ret = write(mas->mas_cli, &(mas->highest), sizeof(int));
-            assert(ret != -1);
+            writeTubeMaster(mas->mas_cli, &(mas->highest));
             printf("J'ai bien envoyé le highest au client avec succès : %d\n", mas->highest);
         }
 
 
         // fermer les tubes nommés
-        fermetureTubeNommes(mas->mas_cli, mas->cli_mas);
+        fermetureTubeNommes(&mas->mas_cli, &mas->cli_mas);
 
         // attendre ordre du client avant de continuer (sémaphore : précédence)
 
@@ -249,30 +252,28 @@ int main(int argc, char * argv[])
     ret = pipe(w_master);
     assert(ret != -1);
 
-    if(fork() == 0) {
+    /*if(fork() == 0) {
         ret = exec("worker", 2, master_w2, w_master);
         assert(ret != -1);
         printf("le master a crée le premier work !\n");
-    }
+    }*/
 
     // création d'un master
     master *mas = malloc(sizeof(master));
-    mas->mas_w = &master_w2;
-    mas->w_mas = &w_master;
+    mas->mas_w = master_w2;
+    mas->w_mas = w_master;
     mas->highest = 0;
     mas->howmanyprimals =0;
 
     // boucle infinie
-    loop(&mas, SyncID);
+    loop(mas, SyncID);
 
     // DESTRUCTION
 
     // destruction des tubes anonymes
 
-    close(master_w2);
-    close(w_master);
-    unlink(master_w2);
-    unlink(w_master);
+    close(*master_w2);
+    close(*w_master);
     
     // destruction des tubes nommés
 

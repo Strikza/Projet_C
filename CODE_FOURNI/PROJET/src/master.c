@@ -46,7 +46,7 @@ void loop(/* paramètres */)
     // - si ORDER_COMPUTE_PRIME
     //       . récupérer le nombre N à tester provenant du client
     //       . construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
-    //             il faut connaître le plus nombre (M) déjà enovoyé aux workers
+    //             il faut connaître le plus nombre (M) déjà envoyé aux workers
     //             on leur envoie tous les nombres entre M+1 et N-1
     //             note : chaque envoie déclenche une réponse des workers
     //       . envoyer N dans le pipeline

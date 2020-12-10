@@ -11,9 +11,6 @@
 #include "master_client.h"
 #include "master_worker.h"
 
-#define TUBE_MASTER_CLIENT "master_client"
-#define TUBE_CLIENT_MASTER "client_master"
-
 /************************************************************************
  * Données persistantes d'un master
  ************************************************************************/
@@ -218,29 +215,29 @@ int main(int argc, char * argv[])
     key_t keySync, keyCritic;
     
     keyCritic = ftok(SEMKEY_CRITICAL, PROJ_ID);
-    assert(keyCritic != 1);
+    assert(keyCritic != -1);
 
     keySync = ftok(SEMKEY_SYNC, PROJ_ID);
-    assert(keySync != 1);
+    assert(keySync != -1);
 
     // - création des sémaphores
     int CriticID, SyncID;
     CriticID = semget(keyCritic, 1, IPC_CREAT | IPC_EXCL | 0641);
-    assert(CriticID != 1);
+    assert(CriticID != -1);
     SyncID = semget(keySync, 1, IPC_CREAT | IPC_EXCL | 0641);
-    assert(SyncID != 1);
+    assert(SyncID != -1);
 
     // - initialisation des sémaphores
     int ret;
     ret = semctl(CriticID, 0, SETVAL, 0);
-    assert(ret != 1);
+    assert(ret != -1);
     ret = semctl(SyncID, 0, SETVAL, 1);
-    assert(ret != 1);
+    assert(ret != -1);
 
 
     // ***** création des tubes nommés *****
-    mkfifo(TUBE_MASTER_CLIENT, 0600);
-    mkfifo(TUBE_CLIENT_MASTER, 0600);
+    mkfifo(MASTER_CLIENT, 0600);
+    mkfifo(CLIENT_MASTER, 0600);
 
     // ***** création du premier worker *****
 
@@ -277,8 +274,8 @@ int main(int argc, char * argv[])
     
     // destruction des tubes nommés
 
-    unlink(TUBE_MASTER_CLIENT);
-    unlink(TUBE_CLIENT_MASTER);
+    unlink(MASTER_CLIENT);
+    unlink(CLIENT_MASTER);
     
     // destruction des sémaphores, ...
 

@@ -45,9 +45,9 @@ static void parseArgs(int argc, char * argv[], struct s_worker * worker)
         usage(argv[0], "Nombre d'arguments incorrect");
 
     // remplir la structure
-    worker->myNumberPrime = argv[1];
-    worker->fdIn = argv[2];
-    worker->fdToMaster = argv[3];
+    worker->myNumberPrime = (int *) argv[1];
+    worker->fdIn = (int *) argv[2];
+    worker->fdToMaster = (int *) argv[3];
     worker->fdOut = NULL;
 
 }
@@ -77,7 +77,7 @@ void ecritureTube(int * fdTube, int answer){
     ret = close(fdTube[0]);  // Fermeture côté lecture
     assert(ret != -1);
 
-    ret = write(fdTube[1], answer, sizeof(int));
+    ret = write(fdTube[1], &answer, sizeof(int));
     assert(ret != -1);
 }
 
@@ -170,7 +170,7 @@ void loop(struct s_worker *cur_worker)
             cur_worker->fdOut = newFdOut;
 
             // On créé un fils pour créé un nouveau worker
-            if(fork == 0){
+            if(fork() == 0){
                 // Arguments en paramètres du prochain worker
                 char * args[] = {"worker", (char *)number, (char *)newFdOut, (char *)(cur_worker->fdToMaster)};
 

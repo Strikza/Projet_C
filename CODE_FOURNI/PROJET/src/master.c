@@ -36,9 +36,15 @@ static void usage(const char *exeName, const char *message)
 
 
 /************************************************************************
+ * Fonctions Annexes
+ ************************************************************************/
+
+
+
+/************************************************************************
  * boucle principale de communication avec le client
  ************************************************************************/
-void loop(/* paramètres */)
+void loop(int tubenom1, int tubenom2/* paramètres */)
 {
     // boucle infinie :
     // - ouverture des tubes (cf. rq client.c)
@@ -65,6 +71,9 @@ void loop(/* paramètres */)
     //
     // il est important d'ouvrir et fermer les tubes nommés à chaque itération
     // voyez-vous pourquoi ?
+
+    // ouverture des tubes
+    ouvertureTubeNommes(tubenom1, tubenom2);
 }
 
 
@@ -112,8 +121,10 @@ int main(int argc, char * argv[])
     // création des tubes anonymes
     int master_w2[2];                                   // tube anonyme du master vers premier worker
     int w_master[2];                                    // tube anonyme des workers vers le master (tout les workers doivent le connaitre)
-    pipe(master_w2);
-    pipe(w_master);
+    ret = pipe(master_w2);
+    assert(ret != -1);
+    ret = pipe(w_master);
+    assert(ret != -1);
 
     if(fork() == 0) {
         ret = exec("worker", 2, master_w2, w_master);
@@ -133,6 +144,8 @@ int main(int argc, char * argv[])
 
     // destruction des tubes anonymes
 
+    close(master_w2);
+    close(w_master);
     unlink(master_w2);
     unlink(w_master);
     

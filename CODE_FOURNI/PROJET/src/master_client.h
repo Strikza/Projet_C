@@ -6,6 +6,7 @@
 #include <sys/sem.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
+#include <unistd.h>
 
 // On peut mettre ici des éléments propres au couple master/client :
 //    - des constantes pour rendre plus lisible les comunications

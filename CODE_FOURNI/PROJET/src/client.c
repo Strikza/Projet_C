@@ -138,10 +138,20 @@ int main(int argc, char * argv[])
     }
     else{
 
+        // Entrée en section critique
         ret = semop(semid_crit, &take, 1);
         assert(ret != -1);
 
-        fd_master_client = open()
+        // Ouverture des 2 tubes nommés
+        fd_master_client = open(MASTER_CLIENT, O_RDONLY);
+        assert(fd_master_client != -1);
+
+        fd_client_master = open(CLIENT_MASTER, O_WRONLY);
+        assert(fd_client_master != -1);
+
+        if(order == ORDER_COMPUTE_PRIME){
+            ret = 
+        }
 
     }
     

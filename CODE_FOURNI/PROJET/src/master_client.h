@@ -27,7 +27,10 @@
 #define SEMKEY_CRITICAL "client.c"
 #define SEMKEY_SYNC "master.c"
 
+#define PROJ_ID 5
+
 struct sembuf take = {0, 1, 0};
 struct sembuf sell = {0, -1, 0};
+struct sembuf wait = {0, 0, 0};
 
 #endif

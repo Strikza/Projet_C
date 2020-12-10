@@ -107,10 +107,10 @@ void envoieDonneesMaster(int fd, int order, int number){
     int ret;
     
     if(order == ORDER_COMPUTE_PRIME){
-        printf("Le client n°%ld envoie l'ordre %d avec comme nombre '%d'\n", getpid(), order, number);
+        printf("Le client n°%d envoie l'ordre %d avec comme nombre '%d'\n", getpid(), order, number);
     }
     else{
-        printf("Le client n°%ld envoie l'ordre %d\n", order);
+        printf("Le client n°%d envoie l'ordre %d\n", order);
     }
 
     ret = write(fd, &order, sizeof(int));

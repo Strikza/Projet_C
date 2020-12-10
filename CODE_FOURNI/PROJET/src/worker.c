@@ -17,6 +17,12 @@
 // on peut ici définir une structure stockant tout ce dont le worker
 // a besoin : le nombre premier dont il a la charge, ...
 
+struct s_worker{
+    int myNumberPrime;
+    int *fdIn;
+    int *fdOut;
+    int *fdToMaster;
+};
 
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
@@ -33,12 +39,30 @@ static void usage(const char *exeName, const char *message)
     exit(EXIT_FAILURE);
 }
 
-static void parseArgs(int argc, char * argv[] /*, structure à remplir*/)
+static void parseArgs(int argc, char * argv[], struct s_worker * worker)
 {
     if (argc != 4)
         usage(argv[0], "Nombre d'arguments incorrect");
 
     // remplir la structure
+    worker->myNumberPrime = argv[1];
+    worker->fdIn = argv[2];
+    worker->fdToMaster = argv[3];
+
+}
+
+/************************************************************************
+ * Fonction annexes
+ ************************************************************************/
+
+void reponseMaster(int * fdTube, bool answer){
+    
+    int ret;
+
+    close(fdTube[0]);
+
+    ret = write(fdTube[1], answer, sizeof(bool));
+    assert(ret != -1);
 }
 
 /************************************************************************
@@ -65,11 +89,15 @@ void loop(/* paramètres */)
 
 int main(int argc, char * argv[])
 {
-    parseArgs(argc, argv /*, structure à remplir*/);
-    
+    struct s_worker cur_worker;
+
+    parseArgs(argc, argv, &cur_worker);
+
     // Si on est créé c'est qu'on est un nombre premier
     // Envoyer au master un message positif pour dire
     // que le nombre testé est bien premier
+
+    reponseMaster(cur_worker.fdToMaster, true);
 
     loop(/* paramètres */);
 

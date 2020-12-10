@@ -1,6 +1,10 @@
 #ifndef CLIENT_CRIBLE
 #define CLIENT_CRIBLE
 
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+
 // On peut mettre ici des éléments propres au couple master/client :
 //    - des constantes pour rendre plus lisible les comunications
 //    - des fonctions communes (création tubes, écriture dans un tube,
@@ -22,5 +26,8 @@
 
 #define SEMKEY_CRITICAL "client.c"
 #define SEMKEY_SYNC "master.c"
+
+struct sembuf take = {0, 1, 0};
+struct sembuf sell = {0, -1, 0};
 
 #endif

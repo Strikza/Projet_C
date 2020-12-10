@@ -114,6 +114,13 @@ int main(int argc, char * argv[])
     //
     // N'hésitez pas à faire des fonctions annexes ; si la fonction main
     // ne dépassait pas une trentaine de lignes, ce serait bien.
+
+    if(order == ORDER_COMPUTE_PRIME_LOCAL){
+
+    }
+    else{
+        
+    }
     
     return EXIT_SUCCESS;
 }

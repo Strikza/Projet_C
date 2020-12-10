@@ -79,6 +79,20 @@ static int parseArgs(int argc, char * argv[], int *number)
 
 
 /************************************************************************
+ * Fonction annexes
+ ************************************************************************/
+
+void ouvertureTubeNommes(int * fd_write, int * fd_read){
+
+    *fd_read = open(MASTER_CLIENT, O_RDONLY);
+    assert(fd_read != -1);
+
+    *fd_write = open(CLIENT_MASTER, O_WRONLY);
+    assert(fd_write != -1);
+
+}
+
+/************************************************************************
  * Fonction principale
  ************************************************************************/
 
@@ -91,6 +105,7 @@ int main(int argc, char * argv[])
     int fd_master_client;
     int fd_client_master;
     int ret;
+    bool answer;
 
 
     // Ouverture des sémaphores
@@ -143,15 +158,45 @@ int main(int argc, char * argv[])
         assert(ret != -1);
 
         // Ouverture des 2 tubes nommés
-        fd_master_client = open(MASTER_CLIENT, O_RDONLY);
-        assert(fd_master_client != -1);
+        ouvertureTubeNommes(&fd_client_master, &fd_master_client);
 
-        fd_client_master = open(CLIENT_MASTER, O_WRONLY);
-        assert(fd_client_master != -1);
+        // Envoie des données au master
+        ret = write(fd_client_master, &order, sizeof(int));
+        assert(ret != -1);
 
         if(order == ORDER_COMPUTE_PRIME){
-            ret = 
+            ret = write(fd_client_master, &argv[2], sizeof(int));
+            assert(ret != -1);
         }
+        
+        // Lit la réponse du master sur le 2e tube (se bloque en attendant la réponse)
+        ret = read(fd_master_client, &answer, sizeof(bool));
+        assert(ret != -1);
+
+        if(answer == true){
+            printf("Mon corp est prêt, le nombre %d est un nombre premier !\n", argv[2]);
+        }
+        else{
+            printf("Mon corp n'est pas prêt, le nombre %d n'est pas un nombre premier !\n", argv[2]);
+        }
+
+        // Libération de la section critique
+        ret = semop(semid_crit, &sell, 1);
+        assert(ret != -1);
+
+        // Fermeture des tubes
+        ret = close(fd_master_client);
+        assert(ret != -1);
+
+        ret = close(fd_client_master);
+        assert(ret != -1);
+
+        // Déblocage du master
+        ret = semop(semid_sync, &take, 1);
+        assert(ret != -1);
+
+        ret = semop(semid_sync, &sell, 1);
+        assert(ret != -1);
 
     }
     

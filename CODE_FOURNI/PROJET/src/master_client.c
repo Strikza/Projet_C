@@ -13,6 +13,10 @@
 
 // fonctions éventuelles proposées dans le .h
 
+struct sembuf take = {0, -1, 0};
+struct sembuf sell = {0, 1, 0};
+struct sembuf wait = {0, 0, 0};
+
 void liberationTubesNommes(int fd_master_client, int fd_client_master){
     
     int ret;

@@ -36,9 +36,15 @@ static void usage(const char *exeName, const char *message)
 
 
 /************************************************************************
+ * Fonctions Annexes
+ ************************************************************************/
+
+
+
+/************************************************************************
  * boucle principale de communication avec le client
  ************************************************************************/
-void loop(/* paramètres */)
+void loop(int tubenom1, int tubenom2/* paramètres */)
 {
     // boucle infinie :
     // - ouverture des tubes (cf. rq client.c)
@@ -65,6 +71,9 @@ void loop(/* paramètres */)
     //
     // il est important d'ouvrir et fermer les tubes nommés à chaque itération
     // voyez-vous pourquoi ?
+
+    // ouverture des tubes
+    ouvertureTubeNommes(tubenom1, tubenom2);
 }
 
 
@@ -88,7 +97,7 @@ int main(int argc, char * argv[])
     keySync = ftok(SEMKEY_SYNC, PROJ_ID);
     assert(keySync != 1);
 
-    // - création des tableaux de sémaphores
+    // - création des sémaphores
     int CriticID, SyncID;
     CriticID = semget(keyCritic, 1, IPC_CREAT | IPC_EXCL | 0641);
     assert(CriticID != 1);
@@ -99,7 +108,7 @@ int main(int argc, char * argv[])
     int ret;
     ret = semctl(CriticID, 0, SETVAL, 0);
     assert(ret != 1);
-    ret = semctl(SyncID, 0, SETVAL, 0);
+    ret = semctl(SyncID, 0, SETVAL, 1);
     assert(ret != 1);
 
 
@@ -112,8 +121,10 @@ int main(int argc, char * argv[])
     // création des tubes anonymes
     int master_w2[2];                                   // tube anonyme du master vers premier worker
     int w_master[2];                                    // tube anonyme des workers vers le master (tout les workers doivent le connaitre)
-    pipe(master_w2);
-    pipe(w_master);
+    ret = pipe(master_w2);
+    assert(ret != -1);
+    ret = pipe(w_master);
+    assert(ret != -1);
 
     if(fork() == 0) {
         ret = exec("worker", 2, master_w2, w_master);
@@ -125,10 +136,16 @@ int main(int argc, char * argv[])
     // boucle infinie
     loop(/* paramètres */);
 
+    // situation de synchronisation
+
+    ret = semop(SyncID, &wait, 1);
+
     // DESTRUCTION
 
     // destruction des tubes anonymes
 
+    close(master_w2);
+    close(w_master);
     unlink(master_w2);
     unlink(w_master);
     

@@ -20,4 +20,7 @@
 #define MASTER_CLIENT "PIPE_master_client"
 #define CLIENT_MASTER "PIPE_client_master"
 
+#define SEMKEY_CLIENT "client.c"
+#define SEMKEY_MASTER "master.c"
+
 #endif

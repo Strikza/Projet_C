@@ -11,6 +11,9 @@
 #include "master_client.h"
 #include "master_worker.h"
 
+#define TUBE_MASTER_CLIENT "master_client"
+#define TUBE_CLIENT_MASTER "client_master"
+
 /************************************************************************
  * Données persistantes d'un master
  ************************************************************************/
@@ -74,14 +77,72 @@ int main(int argc, char * argv[])
     if (argc != 1)
         usage(argv[0], NULL);
 
-    // - création des sémaphores
-    // - création des tubes nommés
-    // - création du premier worker
+    // ***** création des sémaphores *****
+    
+    // - création des clés
+    key_t keySync, keyCritic;
+    
+    keyCritic = ftok(SEMKEY_CRITICAL, PROJ_ID);
+    assert(keyCritic != 1);
+
+    keySync = ftok(SEMKEY_SYNC, PROJ_ID);
+    assert(keySync != 1);
+
+    // - création des tableaux de sémaphores
+    int CriticID, SyncID;
+    CriticID = semget(keyCritic, 1, IPC_CREAT | IPC_EXCL | 0641);
+    assert(CriticID != 1);
+    SyncID = semget(keySync, 1, IPC_CREAT | IPC_EXCL | 0641);
+    assert(SyncID != 1);
+
+    // - initialisation des sémaphores
+    int ret;
+    ret = semctl(CriticID, 0, SETVAL, 0);
+    assert(ret != 1);
+    ret = semctl(SyncID, 0, SETVAL, 0);
+    assert(ret != 1);
+
+
+    // ***** création des tubes nommés *****
+    mkfifo(TUBE_MASTER_CLIENT, 0600);
+    mkfifo(TUBE_CLIENT_MASTER, 0600);
+
+    // ***** création du premier worker *****
+
+    // création des tubes anonymes
+    int master_w2[2];                                   // tube anonyme du master vers premier worker
+    int w_master[2];                                    // tube anonyme des workers vers le master (tout les workers doivent le connaitre)
+    pipe(master_w2);
+    pipe(w_master);
+
+    if(fork() == 0) {
+        ret = exec("worker", 2, master_w2, w_master);
+        assert(ret != -1);
+        printf("le master a crée le premier work !\n");
+    }
+
 
     // boucle infinie
     loop(/* paramètres */);
 
-    // destruction des tubes nommés, des sémaphores, ...
+    // DESTRUCTION
+
+    // destruction des tubes anonymes
+
+    unlink(master_w2);
+    unlink(w_master);
+    
+    // destruction des tubes nommés
+
+    unlink(TUBE_MASTER_CLIENT);
+    unlink(TUBE_CLIENT_MASTER);
+    
+    // destruction des sémaphores, ...
+
+    ret = semctl(CriticID, 0, IPC_RMID);
+    assert(ret != -1);
+    ret = semctl(SyncID, 0, IPC_RMID);
+    assert(ret != -1);
 
     return EXIT_SUCCESS;
 }

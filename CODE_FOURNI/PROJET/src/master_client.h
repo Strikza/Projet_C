@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <sys/stat.h>
+#include <sys/fcntl.h>
 
 // On peut mettre ici des éléments propres au couple master/client :
 //    - des constantes pour rendre plus lisible les comunications

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <assert.h>
 
 #include "myassert.h"
 
@@ -83,6 +84,23 @@ static int parseArgs(int argc, char * argv[], int *number)
 
 int main(int argc, char * argv[])
 {
+    key_t key_crit = ftok(SEMKEY_CRITICAL, PROJ_ID);
+    key_t key_sync = ftok(SEMKEY_SYNC, PROJ_ID);
+    int semid_crit;
+    int semid_sync;
+    int fd_master_client;
+    int fd_client_master;
+    int ret;
+
+
+    // Ouverture des sémaphores
+    semid_crit = semget(key_crit, 0, 0);
+    assert(semid_crit != -1);
+
+    semid_sync = semget(key_sync, 0, 0);
+    assert(semid_sync != -1);
+
+
     int number = 0;
     int order = parseArgs(argc, argv, &number);
     printf("%d\n", order); // pour éviter le warning
@@ -119,7 +137,12 @@ int main(int argc, char * argv[])
 
     }
     else{
-        
+
+        ret = semop(semid_crit, &take, 1);
+        assert(ret != -1);
+
+        fd_master_client = open()
+
     }
     
     return EXIT_SUCCESS;

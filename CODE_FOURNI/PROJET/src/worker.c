@@ -55,13 +55,13 @@ static void parseArgs(int argc, char * argv[], struct s_worker * worker)
  * Fonction annexes
  ************************************************************************/
 
-void reponseMaster(int * fdTube, bool answer){
+void reponseMaster(int * fdTube, int answer){
     
     int ret;
 
     close(fdTube[0]);
 
-    ret = write(fdTube[1], answer, sizeof(bool));
+    ret = write(fdTube[1], answer, sizeof(int));
     assert(ret != -1);
 }
 
@@ -69,7 +69,7 @@ void reponseMaster(int * fdTube, bool answer){
  * Boucle principale de traitement
  ************************************************************************/
 
-void loop(/* paramètres */)
+void loop(struct s_worker cur_worker)
 {
     // boucle infinie :
     //    attendre l'arrivée d'un nombre à tester
@@ -81,6 +81,8 @@ void loop(/* paramètres */)
     //           - le nombre n'est pas premier
     //           - s'il y a un worker suivant lui transmettre le nombre
     //           - s'il n'y a pas de worker suivant, le créer
+
+    
 }
 
 /************************************************************************
@@ -97,9 +99,9 @@ int main(int argc, char * argv[])
     // Envoyer au master un message positif pour dire
     // que le nombre testé est bien premier
 
-    reponseMaster(cur_worker.fdToMaster, true);
+    reponseMaster(cur_worker.fdToMaster, 1);
 
-    loop(/* paramètres */);
+    loop(cur_worker);
 
     // libérer les ressources : fermeture des files descriptors par exemple
 

@@ -218,29 +218,28 @@ int main(int argc, char * argv[])
     key_t keySync, keyCritic;
     
     keyCritic = ftok(SEMKEY_CRITICAL, PROJ_ID);
-    assert(keyCritic != 1);
+    assert(keyCritic != -1);
 
     keySync = ftok(SEMKEY_SYNC, PROJ_ID);
-    assert(keySync != 1);
+    assert(keySync != -1);
 
     // - création des sémaphores
-    int CriticID, SyncID;
-    CriticID = semget(keyCritic, 1, IPC_CREAT | IPC_EXCL | 0641);
-    assert(CriticID != 1);
-    SyncID = semget(keySync, 1, IPC_CREAT | IPC_EXCL | 0641);
-    assert(SyncID != 1);
+    int CriticID = semget(keyCritic, 1, 0641 | IPC_CREAT);
+    assert(CriticID != -1);
+    int SyncID = semget(keySync, 1, 0641 | IPC_CREAT);
+    assert(SyncID != -1);
 
     // - initialisation des sémaphores
     int ret;
     ret = semctl(CriticID, 0, SETVAL, 0);
-    assert(ret != 1);
+    assert(ret != -1);
     ret = semctl(SyncID, 0, SETVAL, 1);
-    assert(ret != 1);
+    assert(ret != -1);
 
 
     // ***** création des tubes nommés *****
-    mkfifo(TUBE_MASTER_CLIENT, 0600);
-    mkfifo(TUBE_CLIENT_MASTER, 0600);
+    mkfifo(MASTER_CLIENT, 0600);
+    mkfifo(CLIENT_MASTER, 0600);
 
     // ***** création du premier worker *****
 
@@ -252,11 +251,12 @@ int main(int argc, char * argv[])
     ret = pipe(w_master);
     assert(ret != -1);
 
-    /*if(fork() == 0) {
-        ret = exec("worker", 2, master_w2, w_master);
+    if(fork() == 0) {
+        char * args[] = {(char*)2, (char*)master_w2, (char*)w_master};
+        ret = execv("./worker", args);
         assert(ret != -1);
         printf("le master a crée le premier work !\n");
-    }*/
+    }
 
     // création d'un master
     master *mas = malloc(sizeof(master));
@@ -277,8 +277,8 @@ int main(int argc, char * argv[])
     
     // destruction des tubes nommés
 
-    unlink(TUBE_MASTER_CLIENT);
-    unlink(TUBE_CLIENT_MASTER);
+    unlink(MASTER_CLIENT);
+    unlink(CLIENT_MASTER);
     
     // destruction des sémaphores, ...
 

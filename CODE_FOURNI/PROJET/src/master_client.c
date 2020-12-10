@@ -13,7 +13,7 @@
 
 // fonctions éventuelles proposées dans le .h
 
-void liberationRessource(int fd_master_client, int fd_client_master){
+void liberationTubesNommes(int fd_master_client, int fd_client_master){
     
     int ret;
 

@@ -102,25 +102,51 @@ void ouvertureTubeNommes(int * fd_client_master, int * fd_master_client){
 
 }
 
-void envoieDonneesMaster(int fd, int order, int n){
+void envoieDonneesMaster(int fd, int order, int number){
     
     int ret;
+    
+    if(order == ORDER_COMPUTE_PRIME){
+        printf("Le client n°%ld envoie l'ordre %d avec comme nombre '%d'\n", getpid(), order, number);
+    }
+    else{
+        printf("Le client n°%ld envoie l'ordre %d\n", order);
+    }
 
     ret = write(fd, &order, sizeof(int));
     assert(ret != -1);
 
     if(order == ORDER_COMPUTE_PRIME){
-        ret = write(fd, &n, sizeof(int));
+        ret = write(fd, &number, sizeof(int));
         assert(ret != -1);
     }
+
 }
 
-void lectureDonneeRenvoie(int fd, bool * answer){
+void lectureDonneeRenvoie(int fd, int * answer){
 
     int ret;
 
-    ret = read(fd, answer, sizeof(bool));
+    ret = read(fd, answer, sizeof(int));
     assert(ret != -1);
+
+}
+
+void displayAnswer(int order, int answer, int number){
+
+    if(order == ORDER_HOW_MANY_PRIME){
+        printf("Le master a trouvé un total INCROYABLE de seulement %d nombre(s) premier(s). :)\n", answer);
+    }
+    else if(order == ORDER_HIGHEST_PRIME){
+        printf("Le master a réussi le SURPRENANT exploit à trouver un nombre premier égale à '%d' !!!!!\nQuelle grandeur exceptionnel ! O.O", answer);
+    }
+    else if(answer == 1){
+       printf("Mon corps est prêt, le nombre '%d' est un nombre premier !\n", number);
+    }
+    else if(answer == 2){
+        printf("Mon corps n'est pas prêt, le nombre '%d' n'est pas un nombre premier !\n", number);
+    }
+
 }
 
 void déblocageMaster(int semid_sync){
@@ -132,6 +158,7 @@ void déblocageMaster(int semid_sync){
 
     ret = semop(semid_sync, &sell, 1);
     assert(ret != -1);
+
 }
 
 /************************************************************************
@@ -142,13 +169,10 @@ int main(int argc, char * argv[])
 {
     key_t key_crit = ftok(SEMKEY_CRITICAL, PROJ_ID);
     key_t key_sync = ftok(SEMKEY_SYNC, PROJ_ID);
-    int semid_crit;
-    int semid_sync;
-    int fd_master_client;
-    int fd_client_master;
+    int semid_crit, semid_sync;
+    int fd_master_client, fd_client_master;
+    int answer;
     int ret;
-    bool answer;
-
 
     int number = 0;
     int order = parseArgs(argc, argv, &number);
@@ -187,7 +211,7 @@ int main(int argc, char * argv[])
     ouvertureSemaphores(key_crit, key_sync, &semid_crit, &semid_sync);
 
     if(order == ORDER_COMPUTE_PRIME_LOCAL){
-
+        printf("WORK IN PROGRESS ! Sorry for the inconvenience.\n--- Pas mal hein ? Bon c'est juste qu'on a pas décidé si on faisait cette partie, donc vous ne saurez jamais !! >:) ---\n");
     }
     else{
 
@@ -204,19 +228,15 @@ int main(int argc, char * argv[])
         // Lit la réponse du master sur le 2e tube (se bloque en attendant la réponse)
         lectureDonneeRenvoie(fd_master_client, &answer);
 
-        if(answer == true){
-            printf("Mon corp est prêt, le nombre '%d' est un nombre premier !\n", number);
-        }
-        else{
-            printf("Mon corp n'est pas prêt, le nombre '%d' n'est pas un nombre premier !\n", number);
-        }
+        // Affichage de la réponse attendue par le client
+        displayAnswer(order, answer, number);
 
         // Libération de la section critique
         ret = semop(semid_crit, &sell, 1);
         assert(ret != -1);
 
         // Fermeture des tubes
-        liberationRessource(fd_master_client, fd_client_master);
+        liberationTubesNommes(fd_master_client, fd_client_master);
 
         // Déblocage du master
         déblocageMaster(semid_sync);

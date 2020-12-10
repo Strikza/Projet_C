@@ -48,6 +48,7 @@ static void parseArgs(int argc, char * argv[], struct s_worker * worker)
     worker->myNumberPrime = argv[1];
     worker->fdIn = argv[2];
     worker->fdToMaster = argv[3];
+    worker->fdOut = NULL;
 
 }
 
@@ -55,11 +56,26 @@ static void parseArgs(int argc, char * argv[], struct s_worker * worker)
  * Fonction annexes
  ************************************************************************/
 
-void reponseMaster(int * fdTube, int answer){
+int lectureTube(int * fdTube){
+    
+    int ret;
+    int res;
+
+    ret = close(fdTube[1]);  // Fermeture côté écriture
+    assert(ret != -1);
+
+    ret = read(fdTube[0], &res, sizeof(int));
+    assert(ret != -1);
+
+    return res;
+}
+
+void ecritureTube(int * fdTube, int answer){
     
     int ret;
 
-    close(fdTube[0]);
+    ret = close(fdTube[0]);  // Fermeture côté lecture
+    assert(ret != -1);
 
     ret = write(fdTube[1], answer, sizeof(int));
     assert(ret != -1);
@@ -82,7 +98,63 @@ void loop(struct s_worker cur_worker)
     //           - s'il y a un worker suivant lui transmettre le nombre
     //           - s'il n'y a pas de worker suivant, le créer
 
-    
+    int stop = 1;
+    int ret;
+    int number;
+
+    while(stop == 1){
+
+        number = lectureTube(cur_worker.fdIn);
+
+        // Si l'ordre du master est ORDER_STOP
+        if(number == STOP){
+
+            // Si ce worker est le dernier
+            if(cur_worker.fdOut != NULL){
+
+                // On transmet l'information au worker suivant
+                ecritureTube(cur_worker.fdOut, STOP);
+
+                // On attend une réponse de retour du worker suivant
+                ret = lectureTube(cur_worker.fdOut);
+                assert(ret != STOP);
+
+                // On ferme et on détruit le tube entre ces 2 worker
+                ret = close(cur_worker.fdOut);
+                assert(ret != -1);
+                ret = unlink(cur_worker.fdOut);
+                assert(ret != -1);
+            }
+
+            // On renvoie la réponse de retour au worker précédent pour le débloquer
+            ecritureTube(cur_worker.fdIn, STOP);
+
+            stop = 0;
+        }
+        // Le nombre est premier
+        else if(number == cur_worker.myNumberPrime){
+
+            // On écrit notre réponse au Master
+            ecritureTube(cur_worker.fdToMaster, VALID);
+        }
+        // Le nombre n'est pas premier
+        else if((number != cur_worker.myNumberPrime) && (number % cur_worker.myNumberPrime == 0)){
+
+            // On écrit notre réponse au Master
+            ecritureTube(cur_worker.fdToMaster, INVALID);
+        }
+        // On envoie la donnée au worker suivant
+        else if(cur_worker.fdOut != NULL){
+
+            // On envoir la donnée au worker suivant
+            ecritureTube(cur_worker.fdOut, number);
+        }
+        // On créé le worker suivant
+        else{
+            
+        }
+
+    }
 }
 
 /************************************************************************
@@ -99,7 +171,7 @@ int main(int argc, char * argv[])
     // Envoyer au master un message positif pour dire
     // que le nombre testé est bien premier
 
-    reponseMaster(cur_worker.fdToMaster, 1);
+    ecritureTube(cur_worker.fdToMaster, 1);
 
     loop(cur_worker);
 

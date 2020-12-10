@@ -9,6 +9,10 @@
 #include <unistd.h>
 #include <assert.h>
 
+#define STOP -1
+#define VALID 1
+#define INVALID 0
+
 // On peut mettre ici des éléments propres au couple master/worker :
 //    - des constantes pour rendre plus lisible les comunications
 //    - des fonctions communes (écriture dans un tube, ...)

@@ -12,3 +12,15 @@
 #include "master_client.h"
 
 // fonctions éventuelles proposées dans le .h
+
+void liberationRessource(int fd_master_client, int fd_client_master){
+    
+    int ret;
+
+    ret = close(fd_master_client);
+    assert(ret != -1);
+
+    ret = close(fd_client_master);
+    assert(ret != -1);
+
+}

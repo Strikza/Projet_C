@@ -123,18 +123,6 @@ void lectureDonneeRenvoie(int fd, bool * answer){
     assert(ret != -1);
 }
 
-void liberationRessource(int fd_master_client, int fd_client_master){
-    
-    int ret;
-
-    ret = close(fd_master_client);
-    assert(ret != -1);
-
-    ret = close(fd_client_master);
-    assert(ret != -1);
-
-}
-
 void déblocageMaster(int semid_sync){
 
     int ret;

@@ -28,8 +28,8 @@
 #define MASTER_CLIENT "PIPE_master_client"
 #define CLIENT_MASTER "PIPE_client_master"
 
-#define SEMKEY_CRITICAL "client.c"
-#define SEMKEY_SYNC "master.c"
+#define SEMKEY_CRITICAL "master_client.h"
+#define SEMKEY_SYNC "master_worker.h"
 
 #define PROJ_ID 5
 

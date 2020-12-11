@@ -43,7 +43,7 @@ static void usage(const char *exeName, const char *message)
 /************************************************************************
  * Fonctions Annexes
  ************************************************************************/
-void ouvertureTubeNommes(int *mas_cli, int* cli_mas) {
+void ouvertureTubeNommes(int *mas_cli, int *cli_mas) {
 
     *mas_cli = open(MASTER_CLIENT, O_WRONLY);
     assert(*mas_cli != -1);
@@ -235,8 +235,10 @@ int main(int argc, char * argv[])
 
 
     // ***** création des tubes nommés *****
-    mkfifo(MASTER_CLIENT, 0600);
-    mkfifo(CLIENT_MASTER, 0600);
+    ret = mkfifo(MASTER_CLIENT, 0600);
+    assert(ret != -1);
+    ret = mkfifo(CLIENT_MASTER, 0600);
+    assert(ret != -1);
 
     // ***** création du premier worker *****
 
@@ -248,12 +250,12 @@ int main(int argc, char * argv[])
     ret = pipe(w_master);
     assert(ret != -1);
 
-    if(fork() == 0) {
+    /*if(fork() == 0) {
         char * args[] = {(char*)2, (char*)master_w2, (char*)w_master};
         ret = execv("./worker", args);
         assert(ret != -1);
         printf("le master a crée le premier work !\n");
-    }
+    }*/
 
     // création d'un master
     master *mas = malloc(sizeof(master));

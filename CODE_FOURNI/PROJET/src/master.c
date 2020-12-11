@@ -59,13 +59,15 @@ void ouvertureTubeNommes(master * mas) {
 }
 
 
-void fermetureTubeNommes(int *mas_cli, int* cli_mas) {
+void fermetureTubeNommes(master * mas) {
 
-    *mas_cli = close(*mas_cli);
-    assert(*mas_cli != -1);
+    int fd = close(mas->mas_cli);
+    assert(fd != -1);
+    mas->mas_cli = fd;
 
-    *cli_mas = close(*cli_mas);
-    assert(*cli_mas != -1);
+    int fd1 = close(mas->cli_mas);
+    assert(fd1 != -1);
+    mas->cli_mas = fd1;
 }
 
 void writeTubeMaster(int fd, int* answer) {// faire une sous fonction pour les write

@@ -43,22 +43,27 @@ static void usage(const char *exeName, const char *message)
 /************************************************************************
  * Fonctions Annexes
  ************************************************************************/
-void ouvertureTubeNommes(int *mas_cli, int* cli_mas) {
+void ouvertureTubeNommes(master * mas) {
+    printf("Je suis dans ouverture rube nommés mascli : %d, climas : %d\n", mas->mas_cli, mas->cli_mas);
+    int fd = open(MASTER_CLIENT, O_WRONLY);
+    printf("mascli : %d, climas : %d\n", mas->mas_cli, mas->cli_mas);
+    assert(fd != -1);
+    printf("J'ai bien ouvert mas_cli\n");
+    mas->mas_cli = fd;
+    printf("J'ai bien associé le tube à la structure\n");
 
-    *mas_cli = open(MASTER_CLIENT, O_WRONLY);
-    assert(*mas_cli != -1);
-
-    *cli_mas = open(CLIENT_MASTER, O_RDONLY);
-    assert(*cli_mas != -1);
+    mas->cli_mas = open(CLIENT_MASTER, O_RDONLY);
+    assert(mas->cli_mas != -1);
+    printf("J'ai bien ouvert cli_mas\n");
 }
 
-void fermetureTubeNommes(int *mas_cli, int* cli_mas) {
+void fermetureTubeNommes(master* mas) {
 
-    *mas_cli = close(*mas_cli);
-    assert(*mas_cli != -1);
+    mas->mas_cli = close(mas->mas_cli);
+    assert(mas->mas_cli != -1);
 
-    *cli_mas = close(*cli_mas);
-    assert(*cli_mas != -1);
+    mas->cli_mas = close(mas->cli_mas);
+    assert(mas->cli_mas != -1);
 }
 
 void writeTubeMaster(int fd, int* answer) {// faire une sous fonction pour les write
@@ -78,6 +83,7 @@ void readTubeMaster(int fd, int* answer) { // faire une sous fonction pour les w
  ************************************************************************/
 void loop(master* mas, int syncsem)
 {
+    printf("Je suis bien rentré dans la loop\n");
     int ret;
     int endwhile = 0;
     // boucle infinie :
@@ -107,7 +113,8 @@ void loop(master* mas, int syncsem)
     // voyez-vous pourquoi ?
 
     // ouverture des tubes
-    ouvertureTubeNommes(&mas->mas_cli, &mas->cli_mas);
+    ouvertureTubeNommes(mas);
+    printf("J'ai bien ouvert les tubes\n");
 
     // attente ordre d'un client
     int order;
@@ -188,7 +195,7 @@ void loop(master* mas, int syncsem)
 
 
         // fermer les tubes nommés
-        fermetureTubeNommes(&mas->mas_cli, &mas->cli_mas);
+        fermetureTubeNommes(mas);
 
         // attendre ordre du client avant de continuer (sémaphore : précédence)
 
@@ -248,12 +255,12 @@ int main(int argc, char * argv[])
     ret = pipe(w_master);
     assert(ret != -1);
 
-    if(fork() == 0) {
+    /*if(fork() == 0) {
         char * args[] = {(char*)2, (char*)master_w2, (char*)w_master};
         ret = execv("./worker", args);
         assert(ret != -1);
         printf("le master a crée le premier work !\n");
-    }
+    }*/
 
     // création d'un master
     master *mas = malloc(sizeof(master));
@@ -263,6 +270,7 @@ int main(int argc, char * argv[])
     mas->howmanyprimals =0;
 
     // boucle infinie
+    printf("Je vais rentrer dans la boucle \n");
     loop(mas, SyncID);
 
     // DESTRUCTION

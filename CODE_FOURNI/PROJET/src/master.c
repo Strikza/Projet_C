@@ -45,14 +45,10 @@ static void usage(const char *exeName, const char *message)
  ************************************************************************/
 void ouvertureTubeNommes(master * mas) {
    
-    printf("Je suis dans ouverture rube nommés mascli : %d, climas : %d\n", mas->mas_cli, mas->cli_mas);
     int fd = open(MASTER_CLIENT, O_WRONLY);
-    printf("mascli : %d, climas : %d\n", mas->mas_cli, mas->cli_mas);
     assert(fd != -1);
-    printf("J'ai bien ouvert mas_cli\n");
     mas->mas_cli = fd;
-    printf("J'ai bien associé le tube à la structure\n");    
-
+   
     int fd1 = open(CLIENT_MASTER, O_RDONLY);
     assert(fd1 != -1);
     mas->cli_mas = fd1;
@@ -87,7 +83,6 @@ void readTubeMaster(int fd, int* answer) { // faire une sous fonction pour les w
  ************************************************************************/
 void loop(master* mas, int syncsem)
 {
-    printf("Je suis bien rentré dans la loop\n");
     int ret;
     int endwhile = 0;
     // boucle infinie :
@@ -121,9 +116,9 @@ void loop(master* mas, int syncsem)
 
     while(!endwhile) {
         ouvertureTubeNommes(mas);
-        printf("J'ai bien ouvert les tubes\n");
 
         // attente ordre d'un client
+        printf("Bonjour, j'attends la demande d'un client :)\n");
         int order;
         read(mas->cli_mas, &order, sizeof(int));
         assert(ret != -1);
@@ -262,12 +257,16 @@ int main(int argc, char * argv[])
     ret = pipe(w_master);
     assert(ret != -1);
 
-    /*if(fork() == 0) {
-        char * args[] = {(char*)2, (char*)master_w2, (char*)w_master};
+    if(fork() == 0) {
+        char* arg1 = malloc(sizeof(master_w2)); 
+        char* arg2 = malloc(sizeof(w_master));
+        sprintf(arg1, "%d", *master_w2);
+        sprintf(arg2, "%d", *w_master);
+        char* args[] = {"./worker", "2", arg1, arg2, NULL};
         ret = execv("./worker", args);
         assert(ret != -1);
         printf("le master a crée le premier work !\n");
-    }*/
+    }
 
     // création d'un master
     master *mas = malloc(sizeof(master));
@@ -297,6 +296,8 @@ int main(int argc, char * argv[])
     assert(ret != -1);
     ret = semctl(SyncID, 0, IPC_RMID);
     assert(ret != -1);
+
+    free(mas);
 
     return EXIT_SUCCESS;
 }

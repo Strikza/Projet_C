@@ -45,9 +45,15 @@ static void parseArgs(int argc, char * argv[], struct s_worker * worker)
         usage(argv[0], "Nombre d'arguments incorrect");
 
     // remplir la structure
-    worker->myNumberPrime = (int *) argv[1];
-    worker->fdIn = (int *) argv[2];
-    worker->fdToMaster = (int *) argv[3];
+    worker->myNumberPrime = atoi(argv[1]);
+    printf("number : %d\n", worker->myNumberPrime);
+
+    *worker->fdIn = atoi(argv[2]);
+    printf("fdin : %d\n", *worker->fdIn);
+    
+    *worker->fdToMaster = atoi(argv[3]);
+    printf("fdout : %d\n", *worker->fdOut);
+    
     worker->fdOut = NULL;
 
 }
@@ -121,6 +127,7 @@ void loop(struct s_worker *cur_worker)
     while(stop == 1){
 
         number = lectureTube(cur_worker->fdIn);
+        printf("number : %d\n", number);
 
         // Si l'ordre du master est ORDER_STOP
         if(number == STOP){
@@ -171,8 +178,15 @@ void loop(struct s_worker *cur_worker)
 
             // On créé un fils pour créé un nouveau worker
             if(fork() == 0){
+                char* arg1 = malloc(sizeof(cur_worker->myNumberPrime));
+                char* arg2 = malloc(sizeof(cur_worker->fdIn)); 
+                char* arg3 = malloc(sizeof(cur_worker->fdToMaster));
+                sprintf(arg1, "%d", cur_worker->myNumberPrime);
+                sprintf(arg2, "%d", *cur_worker->fdIn);
+                sprintf(arg3, "%d", *cur_worker->fdToMaster);
+                
                 // Arguments en paramètres du prochain worker
-                char * args[] = {"worker", (char *)number, (char *)newFdOut, (char *)(cur_worker->fdToMaster)};
+                char * args[] = {"./worker", arg1, arg2, arg3};
 
                 // On remplace ce processus par le nouveau worker
                 execv("./worker", args);
@@ -193,6 +207,7 @@ int main(int argc, char * argv[])
     struct s_worker cur_worker;
 
     parseArgs(argc, argv, &cur_worker);
+    printf("J'ai init la struc !\n");
 
     // Si on est créé c'est qu'on est un nombre premier
     // Envoyer au master un message positif pour dire

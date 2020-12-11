@@ -258,12 +258,16 @@ int main(int argc, char * argv[])
     assert(ret != -1);
 
     if(fork() == 0) {
-        char* arg1 = malloc(sizeof(master_w2)); 
-        char* arg2 = malloc(sizeof(w_master));
-        sprintf(arg1, "%d", *master_w2);
-        sprintf(arg2, "%d", *w_master);
+        
+        char* arg1 = malloc(sizeof(char)); // = malloc(sizeof(master_w2)); 
+        char* arg2 = malloc(sizeof(char)); // = malloc(sizeof(w_master));
+        sprintf(arg1, "%d", master_w2[0]);
+        sprintf(arg2, "%d", w_master[1]);
+        printf("arg1 : %s\n", arg1);
+        printf("arg2 : %s\n", arg2);
+
         char* args[] = {"./worker", "2", arg1, arg2, NULL};
-        ret = execv("./worker", args);
+        ret = execv(args[0], args);
         assert(ret != -1);
         printf("le master a crée le premier work !\n");
     }

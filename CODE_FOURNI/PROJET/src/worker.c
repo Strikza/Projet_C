@@ -46,13 +46,13 @@ static void parseArgs(int argc, char * argv[], struct s_worker * worker)
 
     // remplir la structure
     worker->myNumberPrime = atoi(argv[1]);
-    printf("number : %d\n", worker->myNumberPrime);
+    printf("number dans le struct : %d\n", worker->myNumberPrime);
 
-    *worker->fdIn = atoi(argv[2]);
-    printf("fdin : %d\n", *worker->fdIn);
+    worker->fdIn = atoi(argv[2]);
+    printf("fdin : %d\n", worker->fdIn);
     
-    *worker->fdToMaster = atoi(argv[3]);
-    printf("fdout : %d\n", *worker->fdOut);
+    worker->fdToMaster = atoi(argv[3]);
+    printf("fdout : %d\n", worker->fdOut);
     
     worker->fdOut = NULL;
 
@@ -76,14 +76,14 @@ int lectureTube(int * fdTube){
     return res;
 }
 
-void ecritureTube(int * fdTube, int answer){
+void ecritureTube(int fdTube, int answer){
     
     int ret;
 
-    ret = close(fdTube[0]);  // Fermeture côté lecture
-    assert(ret != -1);
+    //ret = close(fdTube[0]);  // Fermeture côté lecture
+    //assert(ret != -1);
 
-    ret = write(fdTube[1], &answer, sizeof(int));
+    ret = write(fdTube, &answer, sizeof(int));
     assert(ret != -1);
 }
 
@@ -109,6 +109,7 @@ void libererRessources(int * fdIn, int * fdOut, int * fdToMaster){
 
 void loop(struct s_worker *cur_worker)
 {
+    printf("worker entre dans la loop\n");
     // boucle infinie :
     //    attendre l'arrivée d'un nombre à tester
     //    si ordre d'arrêt
@@ -127,7 +128,7 @@ void loop(struct s_worker *cur_worker)
     while(stop == 1){
 
         number = lectureTube(cur_worker->fdIn);
-        printf("number : %d\n", number);
+        printf("numberde la loop : %d\n", number);
 
         // Si l'ordre du master est ORDER_STOP
         if(number == STOP){
@@ -205,6 +206,10 @@ void loop(struct s_worker *cur_worker)
 int main(int argc, char * argv[])
 {
     struct s_worker cur_worker;
+    printf("argv0 : %s\n", argv[0]);
+    printf("argv1 : %s\n", argv[1]);
+    printf("argv2 : %s\n", argv[2]);
+    printf("argv3 : %s\n", argv[3]);
 
     parseArgs(argc, argv, &cur_worker);
     printf("J'ai init la struc !\n");
@@ -215,6 +220,7 @@ int main(int argc, char * argv[])
 
     ecritureTube(cur_worker.fdToMaster, 1);
 
+    printf("test main worker\n");
     loop(&cur_worker);
 
     // libérer les ressources : fermeture des files descriptors par exemple

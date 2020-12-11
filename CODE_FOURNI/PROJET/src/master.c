@@ -44,7 +44,11 @@ static void usage(const char *exeName, const char *message)
  * Fonctions Annexes
  ************************************************************************/
 <<<<<<< HEAD
+<<<<<<< HEAD
 void ouvertureTubeNommes(int *mas_cli, int *cli_mas) {
+=======
+void ouvertureTubeNommes(int *mas_cli, int* cli_mas) {
+>>>>>>> parent of 15e7bcf... TEST KRAKEN
 =======
 void ouvertureTubeNommes(int *mas_cli, int* cli_mas) {
 >>>>>>> parent of 15e7bcf... TEST KRAKEN

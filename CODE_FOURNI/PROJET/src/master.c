@@ -117,15 +117,16 @@ void loop(master* mas, int syncsem)
     // voyez-vous pourquoi ?
 
     // ouverture des tubes
-    ouvertureTubeNommes(mas);
-    printf("J'ai bien ouvert les tubes\n");
 
-    // attente ordre d'un client
-    int order;
-    read(mas->cli_mas, &order, sizeof(int));
-    assert(ret != -1);
 
     while(!endwhile) {
+        ouvertureTubeNommes(mas);
+        printf("J'ai bien ouvert les tubes\n");
+
+        // attente ordre d'un client
+        int order;
+        read(mas->cli_mas, &order, sizeof(int));
+        assert(ret != -1);
 
         //si ORDER_STOP
         if(order == ORDER_STOP) {
@@ -150,7 +151,7 @@ void loop(master* mas, int syncsem)
             //récupérer le nombre N à tester provenant du client
             int N;
             readTubeMaster(mas->cli_mas, &N);
-            printf("J'ai bien reçu le nombre N : %d", N);
+            printf("J'ai bien reçu le nombre N : %d\n", N);
         
             // construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
             if(N > mas->highest) {
@@ -239,7 +240,7 @@ int main(int argc, char * argv[])
 
     // - initialisation des sémaphores
     int ret;
-    ret = semctl(CriticID, 0, SETVAL, 0);
+    ret = semctl(CriticID, 0, SETVAL, 1);
     assert(ret != -1);
     ret = semctl(SyncID, 0, SETVAL, 1);
     assert(ret != -1);

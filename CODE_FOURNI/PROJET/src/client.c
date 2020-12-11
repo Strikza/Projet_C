@@ -85,9 +85,11 @@ void ouvertureSemaphores(key_t key_crit, key_t key_sync, int * semid_crit, int *
 
     *semid_crit = semget(key_crit, 0, 0);
     assert(*semid_crit != -1);
+    printf("semidc: %d\n", *semid_crit);
 
     *semid_sync = semget(key_sync, 0, 0);
     assert(*semid_sync != -1);
+    printf("semids: %d\n", *semid_sync);
 
 }
 
@@ -137,7 +139,7 @@ void displayAnswer(int order, int answer, int number){
         printf("Le master a trouvé un total INCROYABLE de seulement %d nombre(s) premier(s). :)\n", answer);
     }
     else if(order == ORDER_HIGHEST_PRIME){
-        printf("Le master a réussi le SURPRENANT exploit à trouver un nombre premier égale à '%d' !!!!!\nQuelle grandeur exceptionnel ! O.O", answer);
+        printf("Le master a réussi le SURPRENANT exploit à trouver un nombre premier égale à '%d' !!!!!\nQuelle grandeur exceptionnel ! O.O\n", answer);
     }
     else if(answer == 1){
        printf("Mon corps est prêt, le nombre '%d' est un nombre premier !\n", number);
@@ -208,6 +210,8 @@ int main(int argc, char * argv[])
     
     // Ouverture des sémaphores
     ouvertureSemaphores(key_crit, key_sync, &semid_crit, &semid_sync);
+    printf("semidc : %d\n", semid_crit);
+    printf("semids: %d\n", semid_sync);
 
     if(order == ORDER_COMPUTE_PRIME_LOCAL){
         printf("WORK IN PROGRESS ! Sorry for the inconvenience.\n--- Pas mal hein ? Bon c'est juste qu'on a pas décidé si on faisait cette partie, donc vous ne saurez jamais !! >:) ---\n");
@@ -217,9 +221,11 @@ int main(int argc, char * argv[])
         // Entrée en section critique
         ret = semop(semid_crit, &take, 1);
         assert(ret != -1);
+        printf("Je suis en section critique\n");
 
         // Ouverture des 2 tubes nommés
         ouvertureTubeNommes(&fd_client_master, &fd_master_client);
+        printf("j'ai ouvert les tubes nommées\n");
 
         // Envoie des données au master
         envoieDonneesMaster(fd_client_master, order, number);

@@ -7,9 +7,21 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include <unistd.h>
+#include <pthread.h>
+#include <math.h>
+
 #include "myassert.h"
 
 #include "master_client.h"
+
+typedef struct
+{
+    bool result;
+    int n;    
+    int i;
+    //pthread_mutex_t mutex;
+} ThreadData;
 
 // chaines possibles pour le premier paramètre de la ligne de commande
 #define TK_STOP      "stop"
@@ -160,7 +172,18 @@ void deblocageMaster(int semid_sync){
 
     ret = semop(semid_sync, &sell, 1);
     assert(ret != -1);
+}
 
+void *fonctionThread(void * arg){
+    ThreadData *data = (ThreadData *) arg;
+    
+    if(data->n % data->i == 0) {
+        data->result = false;
+    } else
+    {
+        data->result = true;
+    }
+    return NULL;
 }
 
 /************************************************************************
@@ -215,7 +238,36 @@ int main(int argc, char * argv[])
     printf("semids: %d\n", semid_sync);
 
     if(order == ORDER_COMPUTE_PRIME_LOCAL){
-        printf("WORK IN PROGRESS ! Sorry for the inconvenience.\n--- Pas mal hein ? Bon c'est juste qu'on a pas décidé si on faisait cette partie, donc vous ne saurez jamais !! >:) ---\n");
+        int N = number;
+        pthread_t threadId[N];
+        ThreadData datas[N];
+        int ret;
+        
+        
+        for(int i = 2; i<N; i++) {
+            datas[i].result = true;
+            datas[i].n = number;
+            datas[i].i = i;
+        }
+
+        for(int i = 2; i<N; i++) {
+            ret = pthread_create(&(threadId[i]), NULL, fonctionThread, &(datas[i]));
+            assert(ret == 0);
+        }
+
+        bool res = true;
+        for(int i = 2; i<N; i++) {
+           // printf("%d\n", datas[i].result);
+            if(datas[i].result == false) {
+                res = false;
+                i = N;
+                printf("%d n'est pas premier\n", number);
+            }
+        }
+
+        if(res) {
+            printf("%d est premier\n", number);
+        }
     }
     else{
 

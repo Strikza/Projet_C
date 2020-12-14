@@ -19,9 +19,9 @@
 
 struct s_worker{
     int myNumberPrime;
-    int *fdIn;
-    int *fdOut;
-    int *fdToMaster;
+    int fdIn;
+    int fdOut;
+    int fdToMaster;
 };
 
 /************************************************************************
@@ -46,14 +46,8 @@ static void parseArgs(int argc, char * argv[], struct s_worker * worker)
 
     // remplir la structure
     worker->myNumberPrime = atoi(argv[1]);
-    printf("number dans le struct : %d\n", worker->myNumberPrime);
-
     worker->fdIn = atoi(argv[2]);
-    printf("fdin : %d\n", worker->fdIn);
-    
     worker->fdToMaster = atoi(argv[3]);
-    printf("fdout : %d\n", worker->fdOut);
-    
     worker->fdOut = NULL;
 
 }
@@ -62,43 +56,37 @@ static void parseArgs(int argc, char * argv[], struct s_worker * worker)
  * Fonction annexes
  ************************************************************************/
 
-int lectureTube(int * fdTube){
+int lectureTube(int fdTube){
     
     int ret;
     int res;
 
-    ret = close(fdTube[1]);  // Fermeture côté écriture
-    assert(ret != -1);
-
-    ret = read(fdTube[0], &res, sizeof(int));
+    ret = read(fdTube, &res, sizeof(int));
     assert(ret != -1);
 
     return res;
 }
 
-void ecritureTube(int fdTube, int answer){
+void ecritureTube(int fdTube, int send){
     
     int ret;
 
-    //ret = close(fdTube[0]);  // Fermeture côté lecture
-    //assert(ret != -1);
-
-    ret = write(fdTube, &answer, sizeof(int));
+    ret = write(fdTube, &send, sizeof(int));
     assert(ret != -1);
 }
 
-void libererRessources(int * fdIn, int * fdOut, int * fdToMaster){
+void libererRessources(int fdIn, int fdOut, int fdToMaster){
 
     int ret;
 
     // On ferme les "file descriptors"
-    ret = close(*fdIn);
+    ret = close(fdIn);
     assert(ret != -1);
 
-    ret = close(*fdOut);
+    ret = close(fdOut);
     assert(ret != -1);
 
-    ret = close(*fdToMaster);
+    ret = close(fdToMaster);
     assert(ret != -1);
 
 }
@@ -109,7 +97,6 @@ void libererRessources(int * fdIn, int * fdOut, int * fdToMaster){
 
 void loop(struct s_worker *cur_worker)
 {
-    printf("worker entre dans la loop\n");
     // boucle infinie :
     //    attendre l'arrivée d'un nombre à tester
     //    si ordre d'arrêt
@@ -128,24 +115,20 @@ void loop(struct s_worker *cur_worker)
     while(stop == 1){
 
         number = lectureTube(cur_worker->fdIn);
-        printf("numberde la loop : %d\n", number);
 
         // Si l'ordre du master est ORDER_STOP
         if(number == STOP){
 
-            // Si ce worker est le dernier
+            // Si ce worker n'est pas le dernier
             if(cur_worker->fdOut != NULL){
 
                 // On transmet l'information au worker suivant
                 ecritureTube(cur_worker->fdOut, STOP);
 
-                // On attend une réponse de retour du worker suivant
-                ret = lectureTube(cur_worker->fdOut);
-                assert(ret != STOP);
             }
 
             // On renvoie la réponse de retour au worker précédent pour le débloquer
-            ecritureTube(cur_worker->fdIn, STOP);
+            ecritureTube(cur_worker->fdToMaster, STOP);
 
             stop = 0;
         }
@@ -175,22 +158,22 @@ void loop(struct s_worker *cur_worker)
             ret = pipe(newFdOut);
             assert(ret != -1);
 
-            cur_worker->fdOut = newFdOut;
+            cur_worker->fdOut = newFdOut[1];
 
             // On créé un fils pour créé un nouveau worker
             if(fork() == 0){
-                char* arg1 = malloc(sizeof(cur_worker->myNumberPrime));
-                char* arg2 = malloc(sizeof(cur_worker->fdIn)); 
-                char* arg3 = malloc(sizeof(cur_worker->fdToMaster));
-                sprintf(arg1, "%d", cur_worker->myNumberPrime);
-                sprintf(arg2, "%d", *cur_worker->fdIn);
-                sprintf(arg3, "%d", *cur_worker->fdToMaster);
-                
+                char* arg1 = malloc(sizeof(char));
+                char* arg2 = malloc(sizeof(char));
+                char* arg3 = malloc(sizeof(char));
+                sprintf(arg1, "%d", number);
+                sprintf(arg2, "%d", newFdOut[0]);
+                sprintf(arg3, "%d", cur_worker->fdToMaster);
                 // Arguments en paramètres du prochain worker
-                char * args[] = {"./worker", arg1, arg2, arg3};
+                char * args[] = {"worker", arg1, arg2, arg3, NULL};
 
                 // On remplace ce processus par le nouveau worker
-                execv("./worker", args);
+                ret = execv("./worker", args);
+                assert(ret != -1);
             }
 
             // On envoie la donnée sur le nouveau tube
@@ -206,13 +189,8 @@ void loop(struct s_worker *cur_worker)
 int main(int argc, char * argv[])
 {
     struct s_worker cur_worker;
-    printf("argv0 : %s\n", argv[0]);
-    printf("argv1 : %s\n", argv[1]);
-    printf("argv2 : %s\n", argv[2]);
-    printf("argv3 : %s\n", argv[3]);
 
     parseArgs(argc, argv, &cur_worker);
-    printf("J'ai init la struc !\n");
 
     // Si on est créé c'est qu'on est un nombre premier
     // Envoyer au master un message positif pour dire
@@ -220,7 +198,6 @@ int main(int argc, char * argv[])
 
     ecritureTube(cur_worker.fdToMaster, 1);
 
-    printf("test main worker\n");
     loop(&cur_worker);
 
     // libérer les ressources : fermeture des files descriptors par exemple
@@ -229,3 +206,5 @@ int main(int argc, char * argv[])
 
     return EXIT_SUCCESS;
 }
+
+

@@ -48,7 +48,7 @@ static void parseArgs(int argc, char * argv[], struct s_worker * worker)
     worker->myNumberPrime = atoi(argv[1]);
     worker->fdIn = atoi(argv[2]);
     worker->fdToMaster = atoi(argv[3]);
-    worker->fdOut = NULL;
+    worker->fdOut = -1;
 
 }
 
@@ -83,8 +83,10 @@ void libererRessources(int fdIn, int fdOut, int fdToMaster){
     ret = close(fdIn);
     assert(ret != -1);
 
-    ret = close(fdOut);
-    assert(ret != -1);
+    if(fdOut != -1) {
+        ret = close(fdOut);
+        assert(ret != -1);
+    }
 
     ret = close(fdToMaster);
     assert(ret != -1);
@@ -120,7 +122,7 @@ void loop(struct s_worker *cur_worker)
         if(number == STOP){
 
             // Si ce worker n'est pas le dernier
-            if(cur_worker->fdOut != NULL){
+            if(cur_worker->fdOut != -1){
 
                 // On transmet l'information au worker suivant
                 ecritureTube(cur_worker->fdOut, STOP);
@@ -139,19 +141,20 @@ void loop(struct s_worker *cur_worker)
             ecritureTube(cur_worker->fdToMaster, VALID);
         }
         // Le nombre n'est pas premier
-        else if((number != cur_worker->myNumberPrime) && (number % cur_worker->myNumberPrime == 0)){
+        else if(number % cur_worker->myNumberPrime == 0){
 
             // On écrit notre réponse au Master
             ecritureTube(cur_worker->fdToMaster, INVALID);
         }
         // On envoie la donnée au worker suivant
-        else if(cur_worker->fdOut != NULL){
+        else if(cur_worker->fdOut != -1){
 
             // On envoir la donnée au worker suivant
             ecritureTube(cur_worker->fdOut, number);
         }
         // On créé le worker suivant
         else{
+            printf("KKK je crée le worker %d\n", number);
             
             // On créé le tube de communication entre ces 2 worker
             int newFdOut[2];
@@ -174,6 +177,7 @@ void loop(struct s_worker *cur_worker)
                 // On remplace ce processus par le nouveau worker
                 ret = execv("./worker", args);
                 assert(ret != -1);
+
             }
 
             // On envoie la donnée sur le nouveau tube

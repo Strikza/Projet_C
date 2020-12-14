@@ -59,11 +59,9 @@ void fermetureTubeNommes(master * mas) {
 
     int fd = close(mas->mas_cli);
     assert(fd != -1);
-    mas->mas_cli = fd;
 
     int fd1 = close(mas->cli_mas);
     assert(fd1 != -1);
-    mas->cli_mas = fd1;
 }
 
 void writeTubeMaster(int fd, int* answer) {// faire une sous fonction pour les write
@@ -136,7 +134,7 @@ void loop(master* mas, int syncsem)
 
             // envoyer un accusé de réception au client
             writeTubeMaster(mas->mas_cli, &end);
-            printf("J'ai bien envoyé l'accusé de réception au client : %d", end);
+            printf("J'ai bien envoyé l'accusé de réception au client : %d\n", end);
 
             endwhile = 1;
         }
@@ -150,10 +148,9 @@ void loop(master* mas, int syncsem)
         
             // construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
             if(N > mas->highest) {
-                for(int i = N-mas->highest; i<N; i++) {
+                for(int i = mas->highest+1; i<N; i++) {
                     writeTubeMaster(mas->mas_w[1], &i);
-                    printf("%d envoyé avec succès\n", i);
-
+                    
                     int M;    
                     readTubeMaster(mas->w_mas[0], &M);
                     // on ignore M
@@ -168,8 +165,8 @@ void loop(master* mas, int syncsem)
             readTubeMaster(mas->w_mas[0], &M);
 
             if(M == 1) { //Si N est bien premier
-                if(M > mas->highest) {
-                    mas->highest = M;
+                if(N > mas->highest) {
+                    mas->highest = N;
                 }
                 mas->howmanyprimals++;
             }
@@ -201,7 +198,7 @@ void loop(master* mas, int syncsem)
 
         ret = semop(syncsem, &wait, 1);
         assert(ret != -1);
-
+        
         // revenir en début de boucle
     }
 }
@@ -276,7 +273,7 @@ int main(int argc, char * argv[])
     master *mas = malloc(sizeof(master));
     mas->mas_w = master_w2;
     mas->w_mas = w_master;
-    mas->highest = 0;
+    mas->highest = 2;
     mas->howmanyprimals =0;
 
     // boucle infinie

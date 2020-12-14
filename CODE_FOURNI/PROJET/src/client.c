@@ -120,6 +120,7 @@ void envoieDonneesMaster(int fd, int order, int number){
     if(order == ORDER_COMPUTE_PRIME){
         ret = write(fd, &number, sizeof(int));
         assert(ret != -1);
+        printf("J'ai bien envoyé le numéro %d au master\n", number);
     }
 
 }
@@ -144,7 +145,7 @@ void displayAnswer(int order, int answer, int number){
     else if(answer == 1){
        printf("Mon corps est prêt, le nombre '%d' est un nombre premier !\n", number);
     }
-    else if(answer == 2){
+    else if(answer == 0){
         printf("Mon corps n'est pas prêt, le nombre '%d' n'est pas un nombre premier !\n", number);
     }
 
@@ -236,12 +237,12 @@ int main(int argc, char * argv[])
         // Affichage de la réponse attendue par le client
         displayAnswer(order, answer, number);
 
+        // Fermeture des tubes
+        liberationTubesNommes(fd_master_client, fd_client_master);
+                
         // Libération de la section critique
         ret = semop(semid_crit, &sell, 1);
         assert(ret != -1);
-
-        // Fermeture des tubes
-        liberationTubesNommes(fd_master_client, fd_client_master);
 
         // Déblocage du master
         deblocageMaster(semid_sync);

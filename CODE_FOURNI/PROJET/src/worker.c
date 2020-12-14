@@ -154,7 +154,6 @@ void loop(struct s_worker *cur_worker)
         }
         // On créé le worker suivant
         else{
-            printf("KKK je crée le worker %d\n", number);
             
             // On créé le tube de communication entre ces 2 worker
             int newFdOut[2];

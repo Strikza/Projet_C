@@ -19,8 +19,8 @@ typedef struct master
 {
     int cli_mas;        // tube nommé du client vers le master
     int mas_cli;        // tube nommé du master vers le client
-    int* mas_w;          // tube anonyme du master vers le worker
-    int* w_mas;          // tube anonyme des workers vers le master
+    int mas_w;          // tube anonyme du master vers le worker
+    int w_mas;          // tube anonyme des workers vers le master
     int highest;
     int howmanyprimals;
 } master;
@@ -116,7 +116,6 @@ void loop(master* mas, int syncsem)
         ouvertureTubeNommes(mas);
 
         // attente ordre d'un client
-        printf("Bonjour, j'attends la demande d'un client :)\n");
         int order;
         read(mas->cli_mas, &order, sizeof(int));
         assert(ret != -1);
@@ -124,17 +123,14 @@ void loop(master* mas, int syncsem)
         //si ORDER_STOP
         if(order == ORDER_STOP) {
             // envoyer ordre de fin au premier worker
-            writeTubeMaster(mas->mas_w[1], &order);
-            printf("J'ai bien envoyé l'ordre %d (stop normalement) au workers\n", order);
+            writeTubeMaster(mas->mas_w, &order);
 
             // et attendre sa fin
             int end;
-            readTubeMaster(mas->w_mas[0], &end);
-            printf("J'ai bien reçu la fin des workers : %d\n", end);
+            readTubeMaster(mas->w_mas, &end);
 
             // envoyer un accusé de réception au client
-            writeTubeMaster(mas->mas_cli, &end);
-            printf("J'ai bien envoyé l'accusé de réception au client : %d\n", end);
+            writeTubeMaster(mas->mas_cli, &order);
 
             endwhile = 1;
         }
@@ -144,25 +140,23 @@ void loop(master* mas, int syncsem)
             //récupérer le nombre N à tester provenant du client
             int N;
             readTubeMaster(mas->cli_mas, &N);
-            printf("J'ai bien reçu le nombre N : %d\n", N);
         
             // construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
             if(N > mas->highest) {
                 for(int i = mas->highest+1; i<N; i++) {
-                    writeTubeMaster(mas->mas_w[1], &i);
+                    writeTubeMaster(mas->mas_w, &i);
                     
-                    int M;    
-                    readTubeMaster(mas->w_mas[0], &M);
+                    int X;    
+                    readTubeMaster(mas->w_mas, &X);
                     // on ignore M
                 }
             }
             // envoyer N dans le pipeline
-            writeTubeMaster(mas->mas_w[1], &N);
-            printf("%d envoyé avec succès\n", N);
+            writeTubeMaster(mas->mas_w, &N);
             
             // récupérer la réponse
             int M;    
-            readTubeMaster(mas->w_mas[0], &M);
+            readTubeMaster(mas->w_mas, &M);
 
             if(M == 1) { //Si N est bien premier
                 if(N > mas->highest) {
@@ -173,21 +167,18 @@ void loop(master* mas, int syncsem)
 
             // la transmettre au client
             writeTubeMaster(mas->mas_cli, &M);
-            printf("J'ai bien envoyé la réponse avec succès : %d\n", N);
         }
         
         // si ORDER_HOW_MANY_PRIME
         if(order == ORDER_HOW_MANY_PRIME) {
             // transmettre la réponse au client
             writeTubeMaster(mas->mas_cli, &(mas->howmanyprimals));
-            printf("J'ai bein envoyé le howmany au client avec succès : %d\n", mas->howmanyprimals);
         }
 
         // - si ORDER_HIGHEST_PRIME
         if(order == ORDER_HIGHEST_PRIME) {
             // transmettre la réponse au client
             writeTubeMaster(mas->mas_cli, &(mas->highest));
-            printf("J'ai bien envoyé le highest au client avec succès : %d\n", mas->highest);
         }
 
 
@@ -198,7 +189,7 @@ void loop(master* mas, int syncsem)
 
         ret = semop(syncsem, &wait, 1);
         assert(ret != -1);
-        
+
         // revenir en début de boucle
     }
 }
@@ -260,19 +251,16 @@ int main(int argc, char * argv[])
         char* arg2 = malloc(sizeof(char)); // = malloc(sizeof(w_master));
         sprintf(arg1, "%d", master_w2[0]);
         sprintf(arg2, "%d", w_master[1]);
-        printf("arg1 : %s\n", arg1);
-        printf("arg2 : %s\n", arg2);
 
         char* args[] = {"./worker", "2", arg1, arg2, NULL};
         ret = execv(args[0], args);
         assert(ret != -1);
-        printf("le master a crée le premier work !\n");
     }
 
     // création d'un master
     master *mas = malloc(sizeof(master));
-    mas->mas_w = master_w2;
-    mas->w_mas = w_master;
+    mas->mas_w = master_w2[1];
+    mas->w_mas = w_master[0];
     mas->highest = 2;
     mas->howmanyprimals =0;
 

@@ -97,11 +97,9 @@ void ouvertureSemaphores(key_t key_crit, key_t key_sync, int * semid_crit, int *
 
     *semid_crit = semget(key_crit, 0, 0);
     assert(*semid_crit != -1);
-    printf("semidc: %d\n", *semid_crit);
 
     *semid_sync = semget(key_sync, 0, 0);
     assert(*semid_sync != -1);
-    printf("semids: %d\n", *semid_sync);
 
 }
 
@@ -132,7 +130,7 @@ void envoieDonneesMaster(int fd, int order, int number){
     if(order == ORDER_COMPUTE_PRIME){
         ret = write(fd, &number, sizeof(int));
         assert(ret != -1);
-        printf("J'ai bien envoyé le numéro %d au master\n", number);
+        printf("Le client envoie le numéro %d au master\n", number);
     }
 
 }
@@ -176,8 +174,8 @@ void deblocageMaster(int semid_sync){
 
 void *fonctionThread(void * arg){
     ThreadData *data = (ThreadData *) arg;
-    
-    if(data->n % data->i == 0) {
+
+    if((data->n % data->i) == 0) {
         data->result = false;
     } else
     {
@@ -234,33 +232,30 @@ int main(int argc, char * argv[])
     
     // Ouverture des sémaphores
     ouvertureSemaphores(key_crit, key_sync, &semid_crit, &semid_sync);
-    printf("semidc : %d\n", semid_crit);
-    printf("semids: %d\n", semid_sync);
 
     if(order == ORDER_COMPUTE_PRIME_LOCAL){
-        int N = number;
-        pthread_t threadId[N];
-        ThreadData datas[N];
+        pthread_t threadId[number];
+        ThreadData datas[number];
         int ret;
         
         
-        for(int i = 2; i<N; i++) {
+        for(int i = 2; i<number; i++) {
             datas[i].result = true;
             datas[i].n = number;
             datas[i].i = i;
         }
 
-        for(int i = 2; i<N; i++) {
+        for(int i = 2; i<number; i++) {
             ret = pthread_create(&(threadId[i]), NULL, fonctionThread, &(datas[i]));
             assert(ret == 0);
         }
 
         bool res = true;
-        for(int i = 2; i<N; i++) {
-           // printf("%d\n", datas[i].result);
+        for(int i = 2; i<number; i++) {
+            printf("%d\n", datas[i].result);
             if(datas[i].result == false) {
                 res = false;
-                i = N;
+                i = number;
                 printf("%d n'est pas premier\n", number);
             }
         }
@@ -274,12 +269,9 @@ int main(int argc, char * argv[])
         // Entrée en section critique
         ret = semop(semid_crit, &take, 1);
         assert(ret != -1);
-        printf("Je suis en section critique\n");
 
         // Ouverture des 2 tubes nommés
         ouvertureTubeNommes(&fd_client_master, &fd_master_client);
-        printf("j'ai ouvert les tubes nommées\n");
-
         // Envoie des données au master
         envoieDonneesMaster(fd_client_master, order, number);
         

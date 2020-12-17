@@ -140,23 +140,30 @@ void loop(master* mas, int syncsem)
             //récupérer le nombre N à tester provenant du client
             int N;
             readTubeMaster(mas->cli_mas, &N);
+            printf("M : Le master reçois le nombre '%d' à envoyer aux workers\n", N);
         
             // construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
             if(N > mas->highest) {
+                printf("M : Il faut peut-être créer de nouveau worker, car N=%d est plus grand que mas->highest=%d\n", N, mas->highest);
                 for(int i = mas->highest+1; i<N; i++) {
                     writeTubeMaster(mas->mas_w, &i);
+                    printf("M : J'ai écrit %d dans le pipeline pour créer les workers\n", i);
                     
                     int X;    
                     readTubeMaster(mas->w_mas, &X);
-                    // on ignore M
+                    printf("M : J'ai reçus %d d'un worker (phase de création de worker)\n", X);
                 }
             }
             // envoyer N dans le pipeline
             writeTubeMaster(mas->mas_w, &N);
+            printf("M : J'ai écrit %d dans le pipeline pour le tester\n", N);
             
             // récupérer la réponse
-            int M;    
+            int M;   
+            printf("M : Je vais attendre 1s que les workers finissent leur travail\n");
+            sleep(1);
             readTubeMaster(mas->w_mas, &M);
+            printf("M : J'ai reçus %d d'un worker (phase de test)\n", M);
 
             if(M == 1) { //Si N est bien premier
                 if(N > mas->highest) {
@@ -191,6 +198,7 @@ void loop(master* mas, int syncsem)
         assert(ret != -1);
 
         // revenir en début de boucle
+        printf("----------------------------------------------------------\n");
     }
 }
 
@@ -247,6 +255,7 @@ int main(int argc, char * argv[])
 
     if(fork() == 0) {
         
+        printf("W2 : Je suis le premier des workers créé\n");
         char* arg1 = malloc(sizeof(char)); // = malloc(sizeof(master_w2)); 
         char* arg2 = malloc(sizeof(char)); // = malloc(sizeof(w_master));
         sprintf(arg1, "%d", master_w2[0]);

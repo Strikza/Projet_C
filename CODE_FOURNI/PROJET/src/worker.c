@@ -117,6 +117,7 @@ void loop(struct s_worker *cur_worker)
     while(stop == 1){
 
         number = lectureTube(cur_worker->fdIn);
+        printf("W%d : J'ai reçu la valeur %d en lecture\n",cur_worker->myNumberPrime, number);
 
         // Si l'ordre du master est ORDER_STOP
         if(number == STOP){
@@ -126,6 +127,7 @@ void loop(struct s_worker *cur_worker)
 
                 // On transmet l'information au worker suivant
                 ecritureTube(cur_worker->fdOut, STOP);
+                printf("W%d : J'ai écris la valeur %d dans le tube\n",cur_worker->myNumberPrime, STOP);
 
             }
 
@@ -138,19 +140,25 @@ void loop(struct s_worker *cur_worker)
         else if(number == cur_worker->myNumberPrime){
 
             // On écrit notre réponse au Master
+            printf("W%d : J'envoie au MASTER ma réponse positive\n", cur_worker->myNumberPrime);
             ecritureTube(cur_worker->fdToMaster, VALID);
+            printf("W%d : J'ai écris la valeur %d dans le tube\n",cur_worker->myNumberPrime, VALID);
         }
         // Le nombre n'est pas premier
         else if(number % cur_worker->myNumberPrime == 0){
 
             // On écrit notre réponse au Master
+            printf("W%d : J'envoie MASTER ma réponse négative\n", cur_worker->myNumberPrime);
             ecritureTube(cur_worker->fdToMaster, INVALID);
+            printf("W%d : J'ai écris la valeur %d dans le tube\n",cur_worker->myNumberPrime, INVALID);
         }
         // On envoie la donnée au worker suivant
         else if(cur_worker->fdOut != -1){
 
             // On envoir la donnée au worker suivant
+            printf("W%d : J'envoie au worker suivant\n", cur_worker->myNumberPrime);
             ecritureTube(cur_worker->fdOut, number);
+            printf("W%d : J'ai écris la valeur %d dans le tube\n",cur_worker->myNumberPrime, number);
         }
         // On créé le worker suivant
         else{
@@ -164,6 +172,7 @@ void loop(struct s_worker *cur_worker)
 
             // On créé un fils pour créé un nouveau worker
             if(fork() == 0){
+                printf("W%d : Je suis le nouveau worker\n", number);
                 char* arg1 = malloc(sizeof(char));
                 char* arg2 = malloc(sizeof(char));
                 char* arg3 = malloc(sizeof(char));
@@ -180,7 +189,9 @@ void loop(struct s_worker *cur_worker)
             }
 
             // On envoie la donnée sur le nouveau tube
+            printf("W%d : J'envoie au nouveau worker suivant\n",cur_worker->myNumberPrime);
             ecritureTube(cur_worker->fdOut, number);
+            printf("W%d : J'ai écris la valeur %d dans le tube\n",cur_worker->myNumberPrime, number);
         }
     }
 }
@@ -199,12 +210,9 @@ int main(int argc, char * argv[])
     // Envoyer au master un message positif pour dire
     // que le nombre testé est bien premier
 
-    ecritureTube(cur_worker.fdToMaster, 1);
-
     loop(&cur_worker);
 
     // libérer les ressources : fermeture des files descriptors par exemple
-
     libererRessources(cur_worker.fdIn, cur_worker.fdOut, cur_worker.fdToMaster);
 
     return EXIT_SUCCESS;

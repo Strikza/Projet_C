@@ -20,7 +20,7 @@ typedef struct
     bool result;
     int n;    
     int i;
-    //pthread_mutex_t mutex;
+
 } ThreadData;
 
 // chaines possibles pour le premier paramètre de la ligne de commande
@@ -142,6 +142,11 @@ void lectureDonneeRenvoie(int fd, int * answer){
     ret = read(fd, answer, sizeof(int));
     assert(ret != -1);
 
+    // Permet au programme d'attendre que tous les workers aient bien reçus l'ordre d'arrêt
+    if(*answer == -1){
+        sleep(2);  
+    }
+
 }
 
 void displayAnswer(int order, int answer, int number){
@@ -157,6 +162,9 @@ void displayAnswer(int order, int answer, int number){
     }
     else if(answer == 0){
         printf("Mon corps n'est pas prêt, le nombre '%d' n'est pas un nombre premier !\n", number);
+    }
+    else{
+        printf("J'ai bien reçu l'accusé de réception de la part du Master\n");
     }
 
 }
@@ -175,13 +183,93 @@ void deblocageMaster(int semid_sync){
 void *fonctionThread(void * arg){
     ThreadData *data = (ThreadData *) arg;
 
+    printf("THREAD : n=%d, i=%d, n modulo i = %d \n",data->n, data->i, (data->n % data->i));
+
     if((data->n % data->i) == 0) {
         data->result = false;
+        printf("THREAD : data=%d\n", data->result);
     } else
     {
         data->result = true;
+        printf("THREAD : data=%d\n", data->result);
     }
     return NULL;
+}
+/*
+void orderComputeLocalPrime(int number){
+    pthread_t threadId[number];
+    ThreadData datas[number];
+    int ret;
+
+    // Initialise les structures pour chaque case
+    for(int i = 2; i<number; i++) {
+        datas[i].result = true;
+        datas[i].n = number;
+        datas[i].i = i;
+    }
+
+    // Lance chaque thread
+    for(int i = 2; i<number; i++) {
+        ret = pthread_create(&(threadId[i]), NULL, fonctionThread, &(datas[i]));
+        printf("data=%d\n", datas[i].result);
+        assert(ret == 0);
+    }
+
+    // Vérifie si le nombre est premier, ou non
+    bool res = true;
+    for(int i = 2; i<number; i++) {
+        if(datas[i].result == false) {
+            res = false;
+            i = number;
+        }
+    }
+
+    if(res) {
+        printf("%d est premier\n", number);
+    }
+    else{
+        printf("%d n'est pas premier\n", number);
+    }
+
+}
+*/
+
+void communicationClientMaster(int order, int number){
+
+    key_t key_crit = ftok(SEMKEY_CRITICAL, PROJ_ID);
+    key_t key_sync = ftok(SEMKEY_SYNC, PROJ_ID);
+    int semid_crit, semid_sync;
+    int fd_master_client, fd_client_master;
+    int answer;
+    int ret;
+
+    // Ouverture des sémaphores
+    ouvertureSemaphores(key_crit, key_sync, &semid_crit, &semid_sync);
+
+    // Entrée en section critique
+    ret = semop(semid_crit, &take, 1);
+    assert(ret != -1);
+
+    // Ouverture des 2 tubes nommés
+    ouvertureTubeNommes(&fd_client_master, &fd_master_client);
+    // Envoie des données au master
+    envoieDonneesMaster(fd_client_master, order, number);
+        
+    // Lit la réponse du master sur le 2e tube (se bloque en attendant la réponse)
+    lectureDonneeRenvoie(fd_master_client, &answer);
+
+    // Affichage de la réponse attendue par le client
+    displayAnswer(order, answer, number);
+
+    // Fermeture des tubes
+    liberationTubesNommes(fd_master_client, fd_client_master);
+                
+    // Libération de la section critique
+    ret = semop(semid_crit, &sell, 1);
+    assert(ret != -1);
+
+    // Déblocage du master
+    deblocageMaster(semid_sync);
 }
 
 /************************************************************************
@@ -190,16 +278,8 @@ void *fonctionThread(void * arg){
 
 int main(int argc, char * argv[])
 {
-    key_t key_crit = ftok(SEMKEY_CRITICAL, PROJ_ID);
-    key_t key_sync = ftok(SEMKEY_SYNC, PROJ_ID);
-    int semid_crit, semid_sync;
-    int fd_master_client, fd_client_master;
-    int answer;
-    int ret;
-
     int number = 0;
     int order = parseArgs(argc, argv, &number);
-    printf("%d\n", order); // pour éviter le warning
 
     // order peut valoir 5 valeurs (cf. master_client.h) :
     //      - ORDER_COMPUTE_PRIME_LOCAL
@@ -229,67 +309,44 @@ int main(int argc, char * argv[])
     // N'hésitez pas à faire des fonctions annexes ; si la fonction main
     // ne dépassait pas une trentaine de lignes, ce serait bien.
 
-    
-    // Ouverture des sémaphores
-    ouvertureSemaphores(key_crit, key_sync, &semid_crit, &semid_sync);
-
     if(order == ORDER_COMPUTE_PRIME_LOCAL){
+        //orderComputeLocalPrime(number);
         pthread_t threadId[number];
         ThreadData datas[number];
         int ret;
-        
-        
+
+        // Initialise les structures pour chaque case
         for(int i = 2; i<number; i++) {
             datas[i].result = true;
             datas[i].n = number;
             datas[i].i = i;
         }
 
+        // Lance chaque thread
         for(int i = 2; i<number; i++) {
             ret = pthread_create(&(threadId[i]), NULL, fonctionThread, &(datas[i]));
+            printf("data=%d\n", datas[i].result);
             assert(ret == 0);
         }
 
+        // Vérifie si le nombre est premier, ou non
         bool res = true;
         for(int i = 2; i<number; i++) {
-            printf("%d\n", datas[i].result);
             if(datas[i].result == false) {
                 res = false;
                 i = number;
-                printf("%d n'est pas premier\n", number);
             }
         }
 
         if(res) {
             printf("%d est premier\n", number);
         }
+        else{
+            printf("%d n'est pas premier\n", number);
+        }
     }
     else{
-
-        // Entrée en section critique
-        ret = semop(semid_crit, &take, 1);
-        assert(ret != -1);
-
-        // Ouverture des 2 tubes nommés
-        ouvertureTubeNommes(&fd_client_master, &fd_master_client);
-        // Envoie des données au master
-        envoieDonneesMaster(fd_client_master, order, number);
-        
-        // Lit la réponse du master sur le 2e tube (se bloque en attendant la réponse)
-        lectureDonneeRenvoie(fd_master_client, &answer);
-
-        // Affichage de la réponse attendue par le client
-        displayAnswer(order, answer, number);
-
-        // Fermeture des tubes
-        liberationTubesNommes(fd_master_client, fd_client_master);
-                
-        // Libération de la section critique
-        ret = semop(semid_crit, &sell, 1);
-        assert(ret != -1);
-
-        // Déblocage du master
-        deblocageMaster(semid_sync);
+        communicationClientMaster(order, number);
     }
     
     return EXIT_SUCCESS;

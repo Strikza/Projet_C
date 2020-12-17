@@ -21,7 +21,8 @@ typedef struct master
     int mas_cli;        // tube nommé du master vers le client
     int mas_w;          // tube anonyme du master vers le worker
     int w_mas;          // tube anonyme des workers vers le master
-    int highest;
+    int highest_prime;
+    int highest_number;
     int howmanyprimals;
 } master;
 
@@ -143,9 +144,9 @@ void loop(master* mas, int syncsem)
             printf("M : Le master reçois le nombre '%d' à envoyer aux workers\n", N);
         
             // construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
-            if(N > mas->highest) {
-                printf("M : Il faut peut-être créer de nouveau worker, car N=%d est plus grand que mas->highest=%d\n", N, mas->highest);
-                for(int i = mas->highest+1; i<N; i++) {
+            if(N > mas->highest_number) {
+                printf("M : Il faut peut-être créer de nouveau worker, car N=%d est plus grand que mas->highest=%d\n", N, mas->highest_number);
+                for(int i = mas->highest_number+1; i<N; i++) {
                     writeTubeMaster(mas->mas_w, &i);
                     printf("M : J'ai écrit %d dans le pipeline pour créer les workers\n", i);
                     
@@ -153,6 +154,7 @@ void loop(master* mas, int syncsem)
                     readTubeMaster(mas->w_mas, &X);
                     printf("M : J'ai reçus %d d'un worker (phase de création de worker)\n", X);
                 }
+                mas->highest_number = N;
             }
             // envoyer N dans le pipeline
             writeTubeMaster(mas->mas_w, &N);
@@ -166,8 +168,8 @@ void loop(master* mas, int syncsem)
             printf("M : J'ai reçus %d d'un worker (phase de test)\n", M);
 
             if(M == 1) { //Si N est bien premier
-                if(N > mas->highest) {
-                    mas->highest = N;
+                if(N > mas->highest_prime) {
+                    mas->highest_prime = N;
                 }
                 mas->howmanyprimals++;
             }
@@ -185,7 +187,7 @@ void loop(master* mas, int syncsem)
         // - si ORDER_HIGHEST_PRIME
         if(order == ORDER_HIGHEST_PRIME) {
             // transmettre la réponse au client
-            writeTubeMaster(mas->mas_cli, &(mas->highest));
+            writeTubeMaster(mas->mas_cli, &(mas->highest_prime));
         }
 
 
@@ -270,7 +272,8 @@ int main(int argc, char * argv[])
     master *mas = malloc(sizeof(master));
     mas->mas_w = master_w2[1];
     mas->w_mas = w_master[0];
-    mas->highest = 2;
+    mas->highest_prime = 2;
+    mas->highest_number = 2;
     mas->howmanyprimals =0;
 
     // boucle infinie

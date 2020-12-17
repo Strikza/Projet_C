@@ -195,44 +195,6 @@ void *fonctionThread(void * arg){
     }
     return NULL;
 }
-/*
-void orderComputeLocalPrime(int number){
-    pthread_t threadId[number];
-    ThreadData datas[number];
-    int ret;
-
-    // Initialise les structures pour chaque case
-    for(int i = 2; i<number; i++) {
-        datas[i].result = true;
-        datas[i].n = number;
-        datas[i].i = i;
-    }
-
-    // Lance chaque thread
-    for(int i = 2; i<number; i++) {
-        ret = pthread_create(&(threadId[i]), NULL, fonctionThread, &(datas[i]));
-        printf("data=%d\n", datas[i].result);
-        assert(ret == 0);
-    }
-
-    // Vérifie si le nombre est premier, ou non
-    bool res = true;
-    for(int i = 2; i<number; i++) {
-        if(datas[i].result == false) {
-            res = false;
-            i = number;
-        }
-    }
-
-    if(res) {
-        printf("%d est premier\n", number);
-    }
-    else{
-        printf("%d n'est pas premier\n", number);
-    }
-
-}
-*/
 
 void communicationClientMaster(int order, int number){
 
@@ -310,7 +272,6 @@ int main(int argc, char * argv[])
     // ne dépassait pas une trentaine de lignes, ce serait bien.
 
     if(order == ORDER_COMPUTE_PRIME_LOCAL){
-        //orderComputeLocalPrime(number);
         pthread_t threadId[number];
         ThreadData datas[number];
         int ret;
